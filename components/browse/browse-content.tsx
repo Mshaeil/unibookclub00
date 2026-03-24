@@ -1,0 +1,483 @@
+"use client"
+
+import { useState, useCallback } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Label } from "@/components/ui/label"
+import { 
+  Search, 
+  Filter, 
+  BookOpen, 
+  Eye, 
+  X,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react"
+
+type Listing = {
+  id: string
+  title: string
+  price: number
+  condition: string
+  item_type: string
+  availability: "available" | "reserved" | "sold"
+  negotiable: boolean
+  images: string[]
+  views_count: number
+  created_at: string
+  author: string | null
+  seller: {
+    full_name: string | null
+  } | null
+  course: {
+    code: string
+    name_ar: string
+    major: {
+      name_ar: string
+      faculty: {
+        name_ar: string
+      } | null
+    } | null
+  } | null
+}
+
+type Faculty = { id: string; name_ar?: string; name?: string }
+type Major = { id: string; faculty_id: string; name_ar?: string; name?: string }
+type Course = { id: string; major_id: string; code?: string; name_ar?: string; name?: string }
+
+const ALL_VALUE = "__all__"
+
+type Filters = {
+  search: string
+  faculty: string
+  major: string
+  course: string
+  itemType: string
+  condition: string
+  minPrice?: number
+  maxPrice?: number
+  sort: string
+}
+
+type Props = {
+  listings: Listing[]
+  totalCount: number
+  currentPage: number
+  perPage: number
+  faculties: Faculty[]
+  majors: Major[]
+  courses: Course[]
+  filters: Filters
+}
+
+const conditionLabels: Record<string, string> = {
+  new: "جديد",
+  like_new: "كالجديد",
+  good: "جيد",
+  acceptable: "مقبول",
+}
+
+const conditionColors: Record<string, string> = {
+  new: "bg-green-100 text-green-800",
+  like_new: "bg-blue-100 text-blue-800",
+  good: "bg-yellow-100 text-yellow-800",
+  acceptable: "bg-gray-100 text-gray-800",
+}
+
+const itemTypeLabels: Record<string, string> = {
+  original: "كتاب أصلي",
+  notes: "ملزمة",
+  reference: "مرجع",
+  summary: "ملخص",
+}
+
+const availabilityLabels: Record<string, string> = {
+  available: "متاح",
+  reserved: "محجوز",
+  sold: "مباع",
+}
+
+const availabilityColors: Record<string, string> = {
+  available: "bg-emerald-100 text-emerald-800",
+  reserved: "bg-amber-100 text-amber-800",
+  sold: "bg-red-100 text-red-800",
+}
+
+export function BrowseContent({ 
+  listings, 
+  totalCount, 
+  currentPage, 
+  perPage,
+  faculties,
+  majors,
+  courses,
+  filters 
+}: Props) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  const [search, setSearch] = useState(filters.search)
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+
+  const totalPages = Math.ceil(totalCount / perPage)
+
+  const filteredMajors = majors.filter(m => m.faculty_id === filters.faculty)
+  const filteredCourses = courses.filter(c => c.major_id === filters.major)
+
+  const toFilterValue = (v: string | undefined) => (v === ALL_VALUE || !v ? "" : v)
+  const fromFilterValue = (v: string) => (v ? v : ALL_VALUE)
+
+  const updateFilters = useCallback((updates: Partial<Filters> & { page?: string | number }) => {
+    const params = new URLSearchParams(searchParams.toString())
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (key === "page") {
+        if (value !== undefined && value !== "" && value !== null) {
+          params.set("page", String(value))
+        } else {
+          params.delete("page")
+        }
+        return
+      }
+      const strVal = typeof value === "string" ? toFilterValue(value) : value
+      if (strVal !== undefined && strVal !== "" && strVal !== null) {
+        params.set(key, String(strVal))
+      } else {
+        params.delete(key)
+      }
+    })
+    
+    if (!updates.hasOwnProperty("page")) {
+      params.delete("page")
+    }
+    
+    router.push(`/browse?${params.toString()}`)
+  }, [router, searchParams])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    updateFilters({ search })
+  }
+
+  const clearFilters = () => {
+    router.push("/browse")
+    setSearch("")
+  }
+
+  const hasFilters = Boolean(filters.search || filters.faculty || filters.major || 
+    filters.course || filters.itemType || filters.condition || filters.minPrice || filters.maxPrice)
+
+  const FilterContent = () => (
+    <div className="space-y-6">
+      {/* Faculty */}
+      <div className="space-y-2">
+        <Label>الكلية</Label>
+        <Select 
+          value={fromFilterValue(filters.faculty)} 
+          onValueChange={(v) => updateFilters({ faculty: toFilterValue(v), major: "", course: "" })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="جميع الكليات" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_VALUE}>جميع الكليات</SelectItem>
+            {faculties.map((f) => (
+              <SelectItem key={f.id} value={f.id}>{f.name_ar ?? f.name ?? "-"}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Major */}
+      <div className="space-y-2">
+        <Label>التخصص</Label>
+        <Select 
+          value={fromFilterValue(filters.major)} 
+          onValueChange={(v) => updateFilters({ major: toFilterValue(v), course: "" })}
+          disabled={!filters.faculty}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="جميع التخصصات" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_VALUE}>جميع التخصصات</SelectItem>
+            {filteredMajors.map((m) => (
+              <SelectItem key={m.id} value={m.id}>{m.name_ar ?? m.name ?? "-"}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Course */}
+      <div className="space-y-2">
+        <Label>المادة</Label>
+        <Select 
+          value={fromFilterValue(filters.course)} 
+          onValueChange={(v) => updateFilters({ course: toFilterValue(v) })}
+          disabled={!filters.major}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="جميع المواد" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_VALUE}>جميع المواد</SelectItem>
+            {filteredCourses.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.code ? `${c.code} - ` : ""}{c.name ?? c.name_ar ?? "-"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Condition */}
+      <div className="space-y-2">
+        <Label>الحالة</Label>
+        <Select 
+          value={fromFilterValue(filters.condition)} 
+          onValueChange={(v) => updateFilters({ condition: toFilterValue(v) })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="جميع الحالات" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_VALUE}>جميع الحالات</SelectItem>
+            <SelectItem value="new">جديد</SelectItem>
+            <SelectItem value="like_new">كالجديد</SelectItem>
+            <SelectItem value="good">جيد</SelectItem>
+            <SelectItem value="acceptable">مقبول</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Item Type */}
+      <div className="space-y-2">
+        <Label>نوع العنصر</Label>
+        <Select 
+          value={fromFilterValue(filters.itemType)} 
+          onValueChange={(v) => updateFilters({ itemType: toFilterValue(v) })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="جميع الأنواع" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_VALUE}>جميع الأنواع</SelectItem>
+            <SelectItem value="original">كتاب أصلي</SelectItem>
+            <SelectItem value="notes">ملزمة</SelectItem>
+            <SelectItem value="reference">مرجع</SelectItem>
+            <SelectItem value="summary">ملخص</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Price Range */}
+      <div className="space-y-2">
+        <Label>نطاق السعر (د.أ)</Label>
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            placeholder="من"
+            value={filters.minPrice || ""}
+            onChange={(e) => updateFilters({ minPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
+            min="0"
+          />
+          <Input
+            type="number"
+            placeholder="إلى"
+            value={filters.maxPrice || ""}
+            onChange={(e) => updateFilters({ maxPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
+            min="0"
+          />
+        </div>
+      </div>
+
+      {hasFilters && (
+        <Button variant="outline" onClick={clearFilters} className="w-full">
+          <X className="ml-2 h-4 w-4" />
+          مسح الفلاتر
+        </Button>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">تصفح الكتب</h1>
+        <p className="text-muted-foreground">
+          {totalCount > 0 ? `${totalCount} كتاب متاح للبيع` : "ابحث عن الكتب الجامعية"}
+        </p>
+      </div>
+
+      {/* Search & Sort */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="ابحث عن كتاب أو مؤلف..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+          <Button type="submit">بحث</Button>
+        </form>
+
+        <div className="flex gap-2">
+          <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="الترتيب" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="latest">الأحدث</SelectItem>
+              <SelectItem value="price_low">السعر: الأقل</SelectItem>
+              <SelectItem value="price_high">السعر: الأعلى</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Mobile Filters */}
+          <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="lg:hidden">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-80">
+              <SheetHeader>
+                <SheetTitle>الفلاتر</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">
+                <FilterContent />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+
+      <div className="flex gap-8">
+        {/* Desktop Sidebar Filters */}
+        <aside className="hidden lg:block w-64 flex-shrink-0">
+          <Card>
+            <CardContent className="pt-6">
+              <h2 className="font-semibold mb-4">الفلاتر</h2>
+              <FilterContent />
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* Results */}
+        <div className="flex-1">
+          {listings.length === 0 ? (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">لا توجد نتائج</h3>
+                <p className="text-muted-foreground mb-4">
+                  {hasFilters 
+                    ? "حاول تغيير الفلاتر أو البحث بكلمات مختلفة" 
+                    : "لا توجد كتب متاحة حالياً"}
+                </p>
+                {hasFilters && (
+                  <Button variant="outline" onClick={clearFilters}>
+                    مسح الفلاتر
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {listings.map((listing) => {
+                  const availability = listing.availability || "available"
+                  return (
+                  <Link key={listing.id} href={`/book/${listing.id}`}>
+                    <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
+                      <div className="relative aspect-[4/3] bg-muted">
+                        {listing.images?.[0] ? (
+                          <Image
+                            src={`/api/file?pathname=${encodeURIComponent(listing.images[0])}`}
+                            alt={listing.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center">
+                            <BookOpen className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                        <Badge 
+                          className={`absolute top-2 right-2 ${conditionColors[listing.condition]}`}
+                        >
+                          {conditionLabels[listing.condition]}
+                        </Badge>
+                        <Badge 
+                          className={`absolute top-2 left-2 ${availabilityColors[availability]}`}
+                        >
+                          {availabilityLabels[availability]}
+                        </Badge>
+                      </div>
+                      <CardContent className="p-4">
+                        <h3 className="font-medium line-clamp-1 mb-1">{listing.title}</h3>
+                        {listing.course && (
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {listing.course.code ? `${listing.course.code} - ` : ""}{listing.course.name_ar ?? listing.course.name ?? "-"}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-lg font-bold text-primary">{listing.price} د.أ</span>
+                          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Eye className="h-3 w-3" />
+                            {listing.views_count}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{itemTypeLabels[listing.item_type] || "كتاب أصلي"}</span>
+                          {listing.negotiable && <span>قابل للتفاوض</span>}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )})}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={currentPage <= 1}
+                    onClick={() => updateFilters({ page: String(currentPage - 1) } as Partial<Filters>)}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-4">
+                    صفحة {currentPage} من {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => updateFilters({ page: String(currentPage + 1) } as Partial<Filters>)}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
