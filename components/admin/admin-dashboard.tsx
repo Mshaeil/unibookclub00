@@ -23,8 +23,10 @@ type Listing = {
   status: "pending_review" | "approved" | "rejected" | "sold"
   availability: "available" | "reserved" | "sold"
   created_at: string
-  seller: { id: string; full_name: string | null } | null
-  course: { id: string; name: string } | null
+  seller_id?: string
+  course_id?: string
+  seller?: { id: string; full_name: string | null } | null
+  course?: { id: string; name: string } | null
 }
 
 type User = {
@@ -68,6 +70,25 @@ type Props = {
   listings: Listing[]
   users: User[]
   reports: Report[]
+  sales: {
+    id: string
+    buyer_name: string
+    buyer_phone: string
+    reference_code: string
+    created_at: string
+    listing: { id: string; title: string } | null
+    seller: { id: string; full_name: string | null } | null
+    buyer: { id: string; full_name: string | null } | null
+  }[]
+  sellerReviews: {
+    id: string
+    rating: number
+    comment: string | null
+    created_at: string
+    listing: { id: string; title: string } | null
+    seller: { id: string; full_name: string | null } | null
+    reviewer: { id: string; full_name: string | null } | null
+  }[]
   faculties: Faculty[]
   majors: Major[]
   courses: Course[]
@@ -99,6 +120,8 @@ export function AdminDashboard({
   listings: initialListings,
   users: initialUsers,
   reports: initialReports,
+  sales: initialSales,
+  sellerReviews: initialSellerReviews,
   faculties: initialFaculties,
   majors: initialMajors,
   courses: initialCourses,
@@ -107,12 +130,14 @@ export function AdminDashboard({
   const supabase = useMemo(() => createClient(), [])
 
   const [listings, setListings] = useState<Listing[]>(initialListings)
-  const [users] = useState<User[]>(initialUsers)
+  const [users, setUsers] = useState<User[]>(initialUsers)
   const [reports, setReports] = useState<Report[]>(initialReports)
+  const [sales] = useState<Props["sales"]>(initialSales)
+  const [sellerReviews] = useState<Props["sellerReviews"]>(initialSellerReviews)
   const [faculties, setFaculties] = useState<Faculty[]>(initialFaculties)
   const [majors, setMajors] = useState<Major[]>(initialMajors)
   const [courses, setCourses] = useState<Course[]>(initialCourses)
-  const [listingFilter, setListingFilter] = useState<"all" | "pending_review" | "approved" | "rejected">("pending_review")
+  const [listingFilter, setListingFilter] = useState<"all" | "pending_review" | "approved" | "rejected">("all")
   const [error, setError] = useState<string | null>(null)
 
   const [newFacultyName, setNewFacultyName] = useState("")
@@ -140,11 +165,11 @@ export function AdminDashboard({
       })
       .eq("id", id)
 
-    if (updateError) {
-      setError("فشل تحديث حالة الإعلان")
-      return
-    }
-
+      if (updateError) {
+        console.error("Update listing status error:", updateError)
+        setError(`فشل تحديث حالة الإعلان: ${updateError.message}`)
+        return
+      }
     setListings((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status } : item)),
     )
@@ -165,9 +190,17 @@ export function AdminDashboard({
 
   async function markReportResolved(reportId: string) {
     setError(null)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     const { error: updateError } = await supabase
       .from("reports")
-      .update({ status: "resolved" })
+      .update({
+        status: "resolved",
+        resolved_by: user?.id ?? null,
+        resolved_at: new Date().toISOString(),
+      })
       .eq("id", reportId)
 
     if (updateError) {
@@ -176,8 +209,48 @@ export function AdminDashboard({
     }
 
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, status: "resolved" } : r)),
+      prev.map((r) => (r.id === reportId ? { ...r, status: "resolved" } : r))
     )
+    router.refresh()
+  }
+
+  async function updateReportStatus(reportId: string, status: Report["status"]) {
+    setError(null)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    const { error: updateError } = await supabase
+      .from("reports")
+      .update({
+        status,
+        resolved_by: status === "resolved" ? user?.id ?? null : null,
+        resolved_at: status === "resolved" ? new Date().toISOString() : null,
+      })
+      .eq("id", reportId)
+
+    if (updateError) {
+      setError(`فشل تحديث حالة البلاغ: ${updateError.message}`)
+      return
+    }
+
+    setReports((prev) => prev.map((r) => (r.id === reportId ? { ...r, status } : r)))
+    router.refresh()
+  }
+
+  async function toggleUserActive(userId: string, nextActive: boolean) {
+    setError(null)
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ is_active: nextActive })
+      .eq("id", userId)
+
+    if (updateError) {
+      setError(`فشل تحديث حالة المستخدم: ${updateError.message}`)
+      return
+    }
+
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_active: nextActive } : u)))
     router.refresh()
   }
 
@@ -356,10 +429,12 @@ export function AdminDashboard({
       )}
 
       <Tabs defaultValue="moderation" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="moderation">مراجعة الإعلانات</TabsTrigger>
           <TabsTrigger value="users">المستخدمون</TabsTrigger>
           <TabsTrigger value="reports">البلاغات</TabsTrigger>
+          <TabsTrigger value="sales">عمليات البيع</TabsTrigger>
+          <TabsTrigger value="reviews">تقييمات البائعين</TabsTrigger>
           <TabsTrigger value="faculties">الكليات</TabsTrigger>
           <TabsTrigger value="majors">التخصصات</TabsTrigger>
           <TabsTrigger value="courses">المواد</TabsTrigger>
@@ -370,7 +445,9 @@ export function AdminDashboard({
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>مراجعة الإعلانات</CardTitle>
-                <CardDescription>اعتماد أو رفض الإعلانات حسب الحالة</CardDescription>
+                <CardDescription>
+                 اعتماد أو رفض الإعلانات حسب الحالة — إجمالي الإعلانات: {listings.length} — المعروض حاليًا: {filteredListings.length}
+                </CardDescription>
               </div>
               <Select
                 value={listingFilter}
@@ -476,6 +553,7 @@ export function AdminDashboard({
                     <TableHead>واتساب</TableHead>
                     <TableHead>الحالة</TableHead>
                     <TableHead>تاريخ التسجيل</TableHead>
+                    <TableHead>الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -491,6 +569,19 @@ export function AdminDashboard({
                       <TableCell>{user.whatsapp || "-"}</TableCell>
                       <TableCell>{user.is_active ? "نشط" : "غير نشط"}</TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString("ar-JO")}</TableCell>
+                      <TableCell>
+                        {user.role === "admin" ? (
+                          <span className="text-xs text-muted-foreground">لا يمكن تعليق المدير</span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant={user.is_active ? "destructive" : "outline"}
+                            onClick={() => toggleUserActive(user.id, !user.is_active)}
+                          >
+                            {user.is_active ? "تعليق الحساب" : "إعادة تفعيل"}
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -548,6 +639,22 @@ export function AdminDashboard({
                           >
                             <CheckCircle className="h-4 w-4" />
                             تم الحل
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateReportStatus(report.id, "reviewed")}
+                            disabled={report.status === "reviewed"}
+                          >
+                            تمت المراجعة
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateReportStatus(report.id, "dismissed")}
+                            disabled={report.status === "dismissed"}
+                          >
+                            رفض البلاغ
                           </Button>
                         </div>
                       </TableCell>
@@ -658,6 +765,76 @@ export function AdminDashboard({
                           </Button>
                         </div>
                       </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sales">
+          <Card>
+            <CardHeader>
+              <CardTitle>سجل عمليات البيع</CardTitle>
+              <CardDescription>عرض جميع عمليات البيع المسجلة بين البائع والمشتري</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>مرجع العملية</TableHead>
+                    <TableHead>الإعلان</TableHead>
+                    <TableHead>البائع</TableHead>
+                    <TableHead>المشتري</TableHead>
+                    <TableHead>رقم المشتري</TableHead>
+                    <TableHead>التاريخ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sales.map((sale) => (
+                    <TableRow key={sale.id}>
+                      <TableCell className="font-medium">{sale.reference_code}</TableCell>
+                      <TableCell>{sale.listing?.title || "-"}</TableCell>
+                      <TableCell>{sale.seller?.full_name || "-"}</TableCell>
+                      <TableCell>{sale.buyer?.full_name || sale.buyer_name || "-"}</TableCell>
+                      <TableCell>{sale.buyer_phone}</TableCell>
+                      <TableCell>{new Date(sale.created_at).toLocaleDateString("ar-JO")}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reviews">
+          <Card>
+            <CardHeader>
+              <CardTitle>تقييمات البائعين</CardTitle>
+              <CardDescription>عرض تقييم النجوم والتعليقات المرسلة بعد إتمام البيع</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>البائع</TableHead>
+                    <TableHead>المقيّم</TableHead>
+                    <TableHead>الإعلان</TableHead>
+                    <TableHead>التقييم</TableHead>
+                    <TableHead>التعليق</TableHead>
+                    <TableHead>التاريخ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sellerReviews.map((review) => (
+                    <TableRow key={review.id}>
+                      <TableCell>{review.seller?.full_name || "-"}</TableCell>
+                      <TableCell>{review.reviewer?.full_name || "-"}</TableCell>
+                      <TableCell>{review.listing?.title || "-"}</TableCell>
+                      <TableCell>{review.rating} / 5</TableCell>
+                      <TableCell className="max-w-[260px] truncate">{review.comment || "-"}</TableCell>
+                      <TableCell>{new Date(review.created_at).toLocaleDateString("ar-JO")}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

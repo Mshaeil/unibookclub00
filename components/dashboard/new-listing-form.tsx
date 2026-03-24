@@ -17,8 +17,7 @@ import {
   Upload, 
   X, 
   AlertCircle, 
-  CheckCircle,
-  ImageIcon 
+  CheckCircle
 } from "lucide-react"
 
 type Faculty = { id: string; name: string }
@@ -56,6 +55,7 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
   })
 
   const [images, setImages] = useState<{ file: File; preview: string }[]>([])
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -128,13 +128,29 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
 
       setUploading(false)
 
+      let pdfPath: string | null = null
+      if (pdfFile) {
+        const fd = new FormData()
+        fd.append("file", pdfFile)
+        const pdfRes = await fetch("/api/upload", {
+          method: "POST",
+          body: fd,
+        })
+        if (!pdfRes.ok) throw new Error("فشل رفع ملف PDF")
+        const pdfData = await pdfRes.json()
+        pdfPath = pdfData.pathname || null
+      }
+
       // Create listing
       const { error: insertError } = await supabase
         .from("listings")
         .insert({
           seller_id: user.id,
           title: formData.title.trim(),
-          description: formData.description.trim() || null,
+          description:
+            (formData.description.trim() || "") +
+              (pdfPath ? `\n\n[PDF_FILE]${pdfPath}[/PDF_FILE]` : "") ||
+            null,
           price: parseFloat(formData.price),
           condition: formData.condition,
           faculty_id: formData.facultyId || null,
@@ -185,10 +201,23 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
         </Alert>
       )}
 
-      {/* Images */}
+      {/* Images + PDF */}
       <Card>
-        <CardContent className="pt-6">
-          <Label className="text-base font-medium mb-4 block">صور الكتاب *</Label>
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <Label className="text-base font-medium">صور الكتاب *</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="pdf" className="text-sm text-muted-foreground">PDF اختياري</Label>
+              <Input
+                id="pdf"
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                disabled={loading}
+                className="w-[180px]"
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {images.map((img, index) => (
               <div key={index} className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
@@ -230,6 +259,9 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
           <p className="text-xs text-muted-foreground mt-2">
             أضف حتى 5 صور. الصورة الأولى ستكون الصورة الرئيسية.
           </p>
+          {pdfFile && (
+            <p className="text-xs text-muted-foreground">تم اختيار: {pdfFile.name}</p>
+          )}
         </CardContent>
       </Card>
 

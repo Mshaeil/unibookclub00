@@ -39,6 +39,8 @@ type Listing = {
   course: {
     code: string
     name_ar: string
+    name_en?: string
+    name?: string
     major: {
       name_ar: string
       faculty: {
@@ -68,6 +70,7 @@ type Filters = {
 
 type Props = {
   listings: Listing[]
+  topSellers: { seller_id: string; full_name: string; sold_count: number }[]
   totalCount: number
   currentPage: number
   perPage: number
@@ -112,6 +115,7 @@ const availabilityColors: Record<string, string> = {
 
 export function BrowseContent({ 
   listings, 
+  topSellers,
   totalCount, 
   currentPage, 
   perPage,
@@ -366,12 +370,31 @@ export function BrowseContent({
       <div className="flex gap-8">
         {/* Desktop Sidebar Filters */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="font-semibold mb-4">الفلاتر</h2>
-              <FilterContent />
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="pt-6">
+                <h2 className="font-semibold mb-4">الفلاتر</h2>
+                <FilterContent />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <h2 className="font-semibold mb-3">أبرز البائعين</h2>
+                {topSellers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">لا يوجد بيانات مبيعات كافية حالياً</p>
+                ) : (
+                  <div className="space-y-2">
+                    {topSellers.map((seller, index) => (
+                      <div key={seller.seller_id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                        <span className="truncate">{index + 1}. {seller.full_name}</span>
+                        <Badge variant="outline">{seller.sold_count} مبيع</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </aside>
 
         {/* Results */}

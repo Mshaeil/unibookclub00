@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { 
   DropdownMenu, 
@@ -13,7 +14,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { BookOpen, Menu, Plus, User, X, LogOut, LayoutDashboard, Heart, Settings, Shield } from "lucide-react"
+import { BookOpen, Menu, Plus, User, X, LogOut, LayoutDashboard, Heart, Settings, Shield, Sun, Moon } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 type Profile = {
@@ -24,12 +25,20 @@ type Profile = {
 export function Header() {
   const router = useRouter()
   const supabase = createClient()
+  const { resolvedTheme, setTheme } = useTheme()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [language, setLanguage] = useState<"ar" | "en">("ar")
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const savedLang = localStorage.getItem("site_lang")
+    if (savedLang === "en" || savedLang === "ar") {
+      setLanguage(savedLang)
+      document.documentElement.lang = savedLang
+    }
+
     async function getUser() {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
@@ -56,6 +65,12 @@ export function Header() {
 
     return () => subscription.unsubscribe()
   }, [supabase])
+
+  function handleLanguageChange(nextLang: "ar" | "en") {
+    setLanguage(nextLang)
+    localStorage.setItem("site_lang", nextLang)
+    document.documentElement.lang = nextLang
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -86,21 +101,43 @@ export function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              الرئيسية
+              {language === "ar" ? "الرئيسية" : "Home"}
             </Link>
             <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              تصفح الكتب
+              {language === "ar" ? "تصفح الكتب" : "Browse Books"}
             </Link>
             <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              الكليات
+              {language === "ar" ? "الكليات" : "Faculties"}
             </Link>
             <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              كيف يعمل
+              {language === "ar" ? "كيف يعمل" : "How It Works"}
             </Link>
           </nav>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
+            <div className="flex items-center rounded-md border border-border">
+              <button
+                className={`px-2 py-1 text-xs ${language === "ar" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                onClick={() => handleLanguageChange("ar")}
+              >
+                AR
+              </button>
+              <button
+                className={`px-2 py-1 text-xs ${language === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                onClick={() => handleLanguageChange("en")}
+              >
+                EN
+              </button>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              aria-label="تبديل الوضع الداكن والفاتح"
+            >
+              {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
             {loading ? (
               <div className="h-9 w-24 animate-pulse bg-muted rounded-md" />
             ) : user ? (
@@ -116,7 +153,7 @@ export function Header() {
                     <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                       <Avatar className="h-9 w-9">
                         <AvatarFallback className="bg-primary text-primary-foreground">
-                          {getInitials(profile?.full_name)}
+                          {getInitials(profile?.full_name ?? null)}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
@@ -125,7 +162,7 @@ export function Header() {
                     <div className="flex items-center gap-2 p-2">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                          {getInitials(profile?.full_name)}
+                          {getInitials(profile?.full_name ?? null)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
@@ -203,19 +240,42 @@ export function Header() {
           <div className="md:hidden py-4 space-y-4 border-t border-border/50">
             <nav className="flex flex-col gap-3">
               <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                الرئيسية
+                {language === "ar" ? "الرئيسية" : "Home"}
               </Link>
               <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                تصفح الكتب
+                {language === "ar" ? "تصفح الكتب" : "Browse Books"}
               </Link>
               <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                الكليات
+                {language === "ar" ? "الكليات" : "Faculties"}
               </Link>
               <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                كيف يعمل
+                {language === "ar" ? "كيف يعمل" : "How It Works"}
               </Link>
             </nav>
             <div className="flex flex-col gap-2 pt-2">
+              <div className="flex items-center rounded-md border border-border overflow-hidden">
+                <button
+                  className={`flex-1 px-2 py-1 text-xs ${language === "ar" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                  onClick={() => handleLanguageChange("ar")}
+                >
+                  AR
+                </button>
+                <button
+                  className={`flex-1 px-2 py-1 text-xs ${language === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                  onClick={() => handleLanguageChange("en")}
+                >
+                  EN
+                </button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              >
+                {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {resolvedTheme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
+              </Button>
               {user ? (
                 <>
                   <Button asChild size="sm" className="w-full gap-2">

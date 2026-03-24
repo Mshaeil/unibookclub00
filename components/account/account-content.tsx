@@ -12,8 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, LogOut, Loader2, User, Edit } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-type Faculty = { id: string; name: string }
-type Major = { id: string; faculty_id: string; name: string }
+type Faculty = { id: string; name_ar?: string; name?: string }
+type Major = { id: string; faculty_id: string; name_ar?: string; name?: string }
 
 type Profile = {
   id: string
@@ -22,8 +22,8 @@ type Profile = {
   whatsapp: string | null
   faculty_id: string | null
   major_id: string | null
-  faculty?: { id: string; name: string } | null
-  major?: { id: string; name: string } | null
+  faculty?: { id: string; name_ar?: string; name?: string } | null
+  major?: { id: string; name_ar?: string; name?: string } | null
 } | null
 
 type Listing = {
@@ -36,7 +36,7 @@ type Listing = {
   images: string[]
   views_count: number
   created_at: string
-  course: { name: string } | null
+  course?: { name_ar?: string; name?: string } | null
 }
 
 const statusLabels: Record<string, string> = {
@@ -50,6 +50,32 @@ const availabilityLabels: Record<string, string> = {
   available: "متاح",
   reserved: "محجوز",
   sold: "مباع",
+}
+
+const NONE_VALUE = "__none__"
+const phoneRegex = /^(?:07\d{8}|\+9627\d{8})$/
+
+function normalizePhoneInput(value: string) {
+  const normalized = value
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[^\d+]/g, "")
+
+  if (normalized.startsWith("+")) {
+    return `+${normalized.slice(1).replace(/\+/g, "")}`
+  }
+
+  return normalized.replace(/\+/g, "")
+}
+
+function mapSupabaseProfileError(message: string) {
+  const lower = message.toLowerCase()
+  if (lower.includes("row-level security") || lower.includes("policy")) {
+    return "لا تملك صلاحية تعديل الملف الشخصي حالياً. تأكد من تسجيل الدخول ثم أعد المحاولة."
+  }
+  if (lower.includes("duplicate key")) {
+    return "تعذر حفظ البيانات بسبب تعارض في السجل. أعد المحاولة."
+  }
+  return message || "فشل تحديث البيانات"
 }
 
 type Props = {
@@ -87,22 +113,83 @@ export function AccountContent({
     setError(null)
     setSaving(true)
 
-    const { error: err } = await supabase
-      .from("profiles")
-      .update({
-        full_name: fullName.trim() || null,
-        phone: phone.trim() || null,
-        whatsapp: whatsapp.trim() || null,
-        faculty_id: facultyId || null,
-        major_id: majorId || null,
-      })
-      .eq("id", profile!.id)
+    const trimmedName = fullName.trim()
+    const trimmedPhone = phone.trim()
+    const trimmedWhatsapp = whatsapp.trim()
 
-    setSaving(false)
-    if (err) {
-      setError("فشل تحديث البيانات")
+    if (!trimmedName) {
+      setError("الاسم الكامل مطلوب")
+      setSaving(false)
       return
     }
+
+    if (trimmedPhone && !phoneRegex.test(trimmedPhone)) {
+      setError("رقم الهاتف غير صالح. استخدم 07XXXXXXXX أو +9627XXXXXXXX")
+      setSaving(false)
+      return
+    }
+
+    if (trimmedWhatsapp && !phoneRegex.test(trimmedWhatsapp)) {
+      setError("رقم واتساب غير صالح. استخدم 07XXXXXXXX أو +9627XXXXXXXX")
+      setSaving(false)
+      return
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      setError("انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.")
+      setSaving(false)
+      return
+    }
+
+    const payload = {
+      id: user.id,
+      full_name: trimmedName,
+      phone: trimmedPhone || null,
+      whatsapp: trimmedWhatsapp || null,
+      faculty_id: facultyId || null,
+      major_id: majorId || null,
+    }
+
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from("profiles")
+      .update(payload)
+      .eq("id", user.id)
+      .select("id")
+      .maybeSingle()
+
+    if (updateError) {
+      setSaving(false)
+      setError(mapSupabaseProfileError(updateError.message))
+      return
+    }
+
+    if (!updatedProfile) {
+      const { data: insertedProfile, error: insertError } = await supabase
+        .from("profiles")
+        .insert(payload)
+        .select("id")
+        .maybeSingle()
+
+      setSaving(false)
+      if (insertError) {
+        setError(mapSupabaseProfileError(insertError.message))
+        return
+      }
+      if (!insertedProfile) {
+        setError("لم يتم حفظ البيانات. أعد المحاولة.")
+        return
+      }
+      setEditing(false)
+      router.refresh()
+      return
+    }
+
+    setSaving(false)
     setEditing(false)
     router.refresh()
   }
@@ -167,10 +254,13 @@ export function AccountContent({
                     id="phone"
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(normalizePhoneInput(e.target.value))}
                     placeholder="07XXXXXXXX"
                     dir="ltr"
+                    inputMode="numeric"
+                    maxLength={13}
                   />
+                  <p className="text-xs text-muted-foreground">مثال: 0791234567 أو +962791234567</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="whatsapp">واتساب</Label>
@@ -178,22 +268,36 @@ export function AccountContent({
                     id="whatsapp"
                     type="tel"
                     value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
+                    onChange={(e) => setWhatsapp(normalizePhoneInput(e.target.value))}
                     placeholder="07XXXXXXXX"
                     dir="ltr"
+                    inputMode="numeric"
+                    maxLength={13}
                   />
+                  <p className="text-xs text-muted-foreground">مثال: 0791234567 أو +962791234567</p>
                 </div>
                 <div className="space-y-2">
                   <Label>الكلية</Label>
-                  <Select value={facultyId} onValueChange={(v) => { setFacultyId(v); setMajorId("") }}>
+                  <Select
+                    value={facultyId || NONE_VALUE}
+                    onValueChange={(v) => {
+                      if (v === NONE_VALUE) {
+                        setFacultyId("")
+                        setMajorId("")
+                        return
+                      }
+                      setFacultyId(v)
+                      setMajorId("")
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="اختر الكلية" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">بدون</SelectItem>
+                      <SelectItem value={NONE_VALUE}>بدون</SelectItem>
                       {faculties.map((f) => (
                         <SelectItem key={f.id} value={f.id}>
-                          {f.name}
+                          {f.name_ar ?? f.name ?? "-"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -201,15 +305,19 @@ export function AccountContent({
                 </div>
                 <div className="space-y-2">
                   <Label>التخصص</Label>
-                  <Select value={majorId} onValueChange={setMajorId} disabled={!facultyId}>
+                  <Select
+                    value={majorId || NONE_VALUE}
+                    onValueChange={(v) => setMajorId(v === NONE_VALUE ? "" : v)}
+                    disabled={!facultyId}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="اختر التخصص" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">بدون</SelectItem>
+                      <SelectItem value={NONE_VALUE}>بدون</SelectItem>
                       {filteredMajors.map((m) => (
                         <SelectItem key={m.id} value={m.id}>
-                          {m.name}
+                          {m.name_ar ?? m.name ?? "-"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -231,8 +339,8 @@ export function AccountContent({
                 <p><span className="text-muted-foreground">البريد:</span> {userEmail}</p>
                 <p><span className="text-muted-foreground">الهاتف:</span> {profile?.phone || "-"}</p>
                 <p><span className="text-muted-foreground">واتساب:</span> {profile?.whatsapp || "-"}</p>
-                <p><span className="text-muted-foreground">الكلية:</span> {profile?.faculty?.name || "-"}</p>
-                <p><span className="text-muted-foreground">التخصص:</span> {profile?.major?.name || "-"}</p>
+                <p><span className="text-muted-foreground">الكلية:</span> {profile?.faculty?.name_ar ?? profile?.faculty?.name ?? "-"}</p>
+                <p><span className="text-muted-foreground">التخصص:</span> {profile?.major?.name_ar ?? profile?.major?.name ?? "-"}</p>
               </div>
             )}
           </CardContent>
@@ -282,7 +390,7 @@ export function AccountContent({
                     <div className="flex-1 min-w-0">
                       <p className="font-medium line-clamp-1">{listing.title}</p>
                       <p className="text-sm text-muted-foreground line-clamp-1">
-                        {listing.course?.name ?? "-"}
+                        {listing.course?.name_ar ?? listing.course?.name ?? "-"}
                       </p>
                       <div className="flex gap-2 mt-1">
                         <span className="text-primary font-semibold">{listing.price} د.أ</span>

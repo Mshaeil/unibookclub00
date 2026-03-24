@@ -21,6 +21,17 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  function mapAuthError(message: string) {
+    const lower = message.toLowerCase()
+    if (lower.includes("unsupported provider") || lower.includes("provider is not enabled")) {
+      return "تسجيل الدخول عبر Google غير مفعّل حالياً في إعدادات المنصة. يرجى تفعيل مزوّد Google في Supabase (Authentication > Providers > Google)."
+    }
+    if (lower.includes("invalid login credentials")) {
+      return "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+    }
+    return message || "حدث خطأ أثناء تسجيل الدخول"
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -33,17 +44,30 @@ export default function LoginForm() {
     })
 
     if (error) {
-      setError(
-        error.message === "Invalid login credentials"
-          ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
-          : error.message
-      )
+      setError(mapAuthError(error.message))
       setLoading(false)
       return
     }
 
     router.push(redirect)
     router.refresh()
+  }
+
+  async function handleGoogleLogin() {
+    setError(null)
+    setLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}${redirect}`,
+      },
+    })
+
+    if (error) {
+      setError(mapAuthError(error.message))
+      setLoading(false)
+    }
   }
 
   return (
@@ -118,6 +142,15 @@ export default function LoginForm() {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={loading}
+                onClick={handleGoogleLogin}
+              >
+                تسجيل الدخول عبر Google
+              </Button>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>

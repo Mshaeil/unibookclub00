@@ -3,6 +3,8 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { BrowseContent } from "@/components/browse/browse-content"
 
+export const dynamic = "force-dynamic"
+
 export default async function BrowsePage({
   searchParams,
 }: {
@@ -22,7 +24,8 @@ export default async function BrowsePage({
   const maxPrice =
     typeof params.maxPrice === "string" ? parseFloat(params.maxPrice) : undefined
   const sort = typeof params.sort === "string" ? params.sort : "latest"
-  const page = typeof params.page === "string" ? parseInt(params.page) : 1
+  const pageParam = typeof params.page === "string" ? parseInt(params.page) : 1
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1
   const perPage = 12
 
   let query = supabase
@@ -33,24 +36,19 @@ export default async function BrowsePage({
       seller:profiles!listings_seller_id_fkey(
         full_name,
         phone,
-        whatsapp,
-        role,
-        is_verified
+        whatsapp
       ),
       course:courses(
         id,
         code,
-        name,
         name_ar,
         name_en,
         major:majors(
           id,
-          name,
           name_ar,
           name_en,
           faculty:faculties(
             id,
-            name,
             name_ar,
             name_en
           )
@@ -70,7 +68,7 @@ export default async function BrowsePage({
     const { data: matchedCourses } = await supabase
       .from("courses")
       .select("id")
-      .or(`name.ilike.%${search}%,name_ar.ilike.%${search}%`)
+      .or(`name_ar.ilike.%${search}%,name_en.ilike.%${search}%,code.ilike.%${search}%`)
 
     if (matchedCourses?.length) {
       orParts.push(
@@ -92,6 +90,8 @@ export default async function BrowsePage({
     const courseIds = majorCourses?.map((c) => c.id) || []
     if (courseIds.length > 0) {
       query = query.in("course_id", courseIds)
+    } else {
+      query = query.eq("id", "__no_results__")
     }
   } else if (faculty) {
     const { data: facultyMajors } = await supabase
@@ -110,7 +110,11 @@ export default async function BrowsePage({
       const courseIds = facultyCourses?.map((c) => c.id) || []
       if (courseIds.length > 0) {
         query = query.in("course_id", courseIds)
+      } else {
+        query = query.eq("id", "__no_results__")
       }
+    } else {
+      query = query.eq("id", "__no_results__")
     }
   }
 
@@ -153,18 +157,44 @@ export default async function BrowsePage({
 
   const { data: faculties } = await supabase
     .from("faculties")
-    .select("id, name, name_ar, name_en")
+    .select("id, name_ar, name_en")
     .order("name_ar", { ascending: true })
 
   const { data: majors } = await supabase
     .from("majors")
-    .select("id, faculty_id, name, name_ar, name_en")
+    .select("id, faculty_id, name_ar, name_en")
     .order("name_ar", { ascending: true })
 
   const { data: courses } = await supabase
     .from("courses")
-    .select("id, major_id, code, name, name_ar, name_en")
+    .select("id, major_id, code, name_ar, name_en")
     .order("name_ar", { ascending: true })
+
+  const { data: soldListingsForTopSellers } = await supabase
+    .from("listings")
+    .select("seller_id, seller:profiles!listings_seller_id_fkey(full_name)")
+    .eq("status", "sold")
+
+  const topSellerMap = new Map<string, { seller_id: string; full_name: string; sold_count: number }>()
+  for (const row of soldListingsForTopSellers || []) {
+    const sellerId = row.seller_id as string | null
+    const sellerArr = row.seller as { full_name: string | null }[] | null
+    const seller = Array.isArray(sellerArr) ? sellerArr[0] : null
+    if (!sellerId) continue
+    const existing = topSellerMap.get(sellerId)
+    if (existing) {
+      existing.sold_count += 1
+    } else {
+      topSellerMap.set(sellerId, {
+        seller_id: sellerId,
+        full_name: seller?.full_name || "مستخدم",
+        sold_count: 1,
+      })
+    }
+  }
+  const topSellers = Array.from(topSellerMap.values())
+    .sort((a, b) => b.sold_count - a.sold_count)
+    .slice(0, 5)
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -172,6 +202,7 @@ export default async function BrowsePage({
       <main className="flex-1 bg-muted/30">
         <BrowseContent
           listings={listings || []}
+          topSellers={topSellers}
           totalCount={count || 0}
           currentPage={page}
           perPage={perPage}

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, BookPlus, ShieldCheck, Zap, Users, BookOpen, GraduationCap } from "lucide-react"
+import { ArrowLeft, BookPlus, ShieldCheck, Zap } from "lucide-react"
 
 export function CTASection() {
   return (
@@ -15,31 +15,6 @@ export function CTASection() {
 
       <div className="container mx-auto px-4 relative">
         <div className="max-w-5xl mx-auto">
-          {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-4 md:gap-8 mb-12 p-6 rounded-2xl backdrop-blur-sm border border-primary-foreground/10">
-            <div className="text-center">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 rounded-xl bg-primary-foreground/10">
-                <BookOpen className="h-6 w-6" />
-              </div>
-              <div className="text-2xl md:text-4xl font-bold">350+</div>
-              <div className="text-xs md:text-sm text-primary-foreground/70">كتاب متاح</div>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 rounded-xl bg-primary-foreground/10">
-                <Users className="h-6 w-6" />
-              </div>
-              <div className="text-2xl md:text-4xl font-bold">500+</div>
-              <div className="text-xs md:text-sm text-primary-foreground/70">طالب مسجل</div>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 rounded-xl bg-primary-foreground/10">
-                <GraduationCap className="h-6 w-6" />
-              </div>
-              <div className="text-2xl md:text-4xl font-bold">5</div>
-              <div className="text-xs md:text-sm text-primary-foreground/70">كليات</div>
-            </div>
-          </div>
-
           <div className="text-center space-y-8">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">
               عندك كتب ما تحتاجها؟
@@ -97,7 +72,7 @@ export function CTASection() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="gap-2 px-8 text-base border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+                className="gap-2 px-8 text-base border-primary-foreground/30 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                 asChild
               >
                 <Link href="/how-it-works">

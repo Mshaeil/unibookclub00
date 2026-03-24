@@ -4,7 +4,16 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, BookOpen, Search, Users } from "lucide-react"
 
-export function HeroSection() {
+type HeroStats = {
+  availableBooks: number
+  sellersCount: number
+  soldCount: number
+}
+
+export function HeroSection({ stats }: { stats?: HeroStats }) {
+  const availableBooks = stats?.availableBooks ?? 0
+  const sellersCount = stats?.sellersCount ?? 0
+  const soldCount = stats?.soldCount ?? 0
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       {/* Background Pattern */}
@@ -59,15 +68,15 @@ export function HeroSection() {
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-xl bg-primary/10">
                 <BookOpen className="h-6 w-6 text-primary" />
               </div>
-              <div className="text-2xl md:text-3xl font-bold text-foreground">350+</div>
+              <div className="text-2xl md:text-3xl font-bold text-foreground">{availableBooks}+</div>
               <div className="text-sm text-muted-foreground">كتاب متاح</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-xl bg-secondary/10">
                 <Users className="h-6 w-6 text-secondary" />
               </div>
-              <div className="text-2xl md:text-3xl font-bold text-foreground">120+</div>
-              <div className="text-sm text-muted-foreground">بائع نشط</div>
+              <div className="text-2xl md:text-3xl font-bold text-foreground">{sellersCount}+</div>
+              <div className="text-sm text-muted-foreground">طالب مسجل</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-xl bg-accent/10">
@@ -75,7 +84,7 @@ export function HeroSection() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div className="text-2xl md:text-3xl font-bold text-foreground">500+</div>
+              <div className="text-2xl md:text-3xl font-bold text-foreground">{soldCount}+</div>
               <div className="text-sm text-muted-foreground">عملية ناجحة</div>
             </div>
           </div>

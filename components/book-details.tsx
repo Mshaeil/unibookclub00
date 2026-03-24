@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +12,7 @@ import { createClient } from "@/lib/supabase/client"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -34,6 +36,7 @@ import {
   MessageCircle,
   Phone,
   Share2,
+  Star,
   Tag,
   Truck,
   User
@@ -131,6 +134,7 @@ interface BookDetailsProps {
 }
 
 export function BookDetails({ listing, relatedListings }: BookDetailsProps) {
+  const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const [currentImage, setCurrentImage] = useState(0)
   const [isWishlisted, setIsWishlisted] = useState(false)
@@ -138,7 +142,19 @@ export function BookDetails({ listing, relatedListings }: BookDetailsProps) {
   const [reportDialogOpen, setReportDialogOpen] = useState(false)
   const [reportReason, setReportReason] = useState<ReportReason>("other")
   const [reportDetails, setReportDetails] = useState("")
+  const [saleSubmitting, setSaleSubmitting] = useState(false)
+  const [buyerName, setBuyerName] = useState("")
+  const [buyerPhone, setBuyerPhone] = useState("")
+  const [ratingValue, setRatingValue] = useState(5)
+  const [ratingComment, setRatingComment] = useState("")
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
   const availability = listing.availability || "available"
+  const pdfMatch = listing.description?.match(/\[PDF_FILE\](.*?)\[\/PDF_FILE\]/)
+  const pdfPath = pdfMatch?.[1] || null
+  const listingDescription = (listing.description || "لا يوجد وصف إضافي").replace(
+    /\s*\[PDF_FILE\][\s\S]*?\[\/PDF_FILE\]\s*/,
+    "",
+  ).trim() || "لا يوجد وصف إضافي"
 
   useEffect(() => {
     async function checkFavoriteState() {
@@ -197,23 +213,173 @@ export function BookDetails({ listing, relatedListings }: BookDetailsProps) {
     }
 
     setReporting(true)
-    const { error } = await supabase.from("reports").insert({
-      reporter_id: user.id,
-      listing_id: listing.id,
-      reason: reportReason,
-      details: reportDetails.trim() || null,
-    })
+
+    // Reports require reporter_id to exist in profiles.
+    // Read-only check avoids touching profiles and triggering RLS on writes.
+    const { data: profileRow, error: profileReadError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (profileReadError) {
+      setReporting(false)
+      window.alert(`تعذر التحقق من الحساب: ${profileReadError.message}`)
+      return
+    }
+    if (!profileRow) {
+      setReporting(false)
+      window.alert("لا يمكن إرسال البلاغ حالياً لأن ملفك الشخصي غير مكتمل. حدّث بيانات الحساب أولاً.")
+      return
+    }
+
+    const { data: insertedReport, error } = await supabase
+      .from("reports")
+      .insert({
+        reporter_id: user.id,
+        listing_id: listing.id,
+        reason: reportReason,
+        details: reportDetails.trim() || null,
+      })
+      .select("id")
+      .single()
+    let inserted = insertedReport
+    let insertError = error
+
+    if (insertError?.code === "42703" || /reporter_id/i.test(insertError?.message || "")) {
+      const fallbackInsert = await supabase
+        .from("reports")
+        .insert({
+          user_id: user.id,
+          listing_id: listing.id,
+          reason: reportReason,
+          details: reportDetails.trim() || null,
+        })
+        .select("id")
+        .single()
+      inserted = fallbackInsert.data
+      insertError = fallbackInsert.error
+    }
     setReporting(false)
 
-    if (error) {
-      window.alert("فشل إرسال التبليغ")
+    if (insertError || !inserted) {
+      window.alert(`فشل إرسال التبليغ: ${insertError?.message || "تعذر حفظ البلاغ"}`)
       return
     }
 
     setReportDialogOpen(false)
     setReportReason("other")
     setReportDetails("")
+    router.refresh()
     window.alert("تم إرسال التبليغ بنجاح")
+  }
+
+  async function handleCreateSale() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      window.alert("يرجى تسجيل الدخول أولاً")
+      return
+    }
+    if (!listing.seller?.id || user.id === listing.seller.id) {
+      window.alert("لا يمكن إتمام عملية الشراء من نفس الحساب")
+      return
+    }
+    if (!buyerName.trim() || !buyerPhone.trim()) {
+      window.alert("يرجى تعبئة اسم المشتري ورقم التواصل")
+      return
+    }
+
+    setSaleSubmitting(true)
+    const referenceCode = `SALE-${listing.id.slice(0, 8).toUpperCase()}`
+    const { error: saleError } = await supabase.from("sales").insert({
+      listing_id: listing.id,
+      seller_id: listing.seller.id,
+      buyer_id: user.id,
+      buyer_name: buyerName.trim(),
+      buyer_phone: buyerPhone.trim(),
+      reference_code: referenceCode,
+    })
+    if (saleError) {
+      setSaleSubmitting(false)
+      window.alert(`فشل تسجيل عملية البيع: ${saleError.message}`)
+      return
+    }
+
+    const { error: listingError } = await supabase
+      .from("listings")
+      .update({ status: "sold", availability: "sold" })
+      .eq("id", listing.id)
+      .eq("seller_id", listing.seller.id)
+
+    setSaleSubmitting(false)
+    if (listingError) {
+      window.alert(`تم تسجيل العملية ولكن فشل تحديث حالة الإعلان: ${listingError.message}`)
+      return
+    }
+
+    window.alert(`تمت العملية بنجاح. مرجع العملية: ${referenceCode}`)
+    router.refresh()
+  }
+
+  async function handleRateSeller() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      window.alert("يرجى تسجيل الدخول أولاً")
+      return
+    }
+    if (!listing.seller?.id || user.id === listing.seller.id) {
+      window.alert("لا يمكن تقييم نفسك")
+      return
+    }
+
+    setRatingSubmitting(true)
+    const { error } = await supabase.from("seller_reviews").insert({
+      seller_id: listing.seller.id,
+      reviewer_id: user.id,
+      listing_id: listing.id,
+      rating: ratingValue,
+      comment: ratingComment.trim() || null,
+    })
+    setRatingSubmitting(false)
+    if (error) {
+      window.alert(`فشل حفظ التقييم: ${error.message}`)
+      return
+    }
+
+    window.alert("تم إرسال تقييم البائع بنجاح")
+    setRatingComment("")
+    setRatingValue(5)
+  }
+
+  async function handleShare() {
+    const shareUrl = typeof window !== "undefined" ? window.location.href : ""
+    const shareTitle = listing.title
+    const shareText = `شاهد إعلان الكتاب: ${listing.title}`
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        })
+        return
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl)
+        window.alert("تم نسخ رابط الإعلان")
+        return
+      }
+
+      window.alert("المشاركة غير مدعومة في هذا المتصفح")
+    } catch (err) {
+      // User canceled share sheet is not an error we should surface.
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return
+      }
+      window.alert("تعذر مشاركة الرابط")
+    }
   }
 
   return (
@@ -273,6 +439,12 @@ export function BookDetails({ listing, relatedListings }: BookDetailsProps) {
                 </div>
               </DialogTrigger>
               <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle className="sr-only">عرض صورة الكتاب</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    صورة مكبرة للكتاب الحالي
+                  </DialogDescription>
+                </DialogHeader>
                 <div className="relative aspect-[4/3]">
                   {listing.images[currentImage] ? (
                     <Image
@@ -358,8 +530,15 @@ export function BookDetails({ listing, relatedListings }: BookDetailsProps) {
             <div className="space-y-3">
               <h3 className="font-semibold text-foreground">الوصف</h3>
               <p className="text-muted-foreground leading-relaxed">
-                {listing.description || "لا يوجد وصف إضافي"}
+                {listingDescription}
               </p>
+              {pdfPath && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={`/api/file?pathname=${encodeURIComponent(pdfPath)}`} target="_blank" rel="noreferrer">
+                    تحميل ملف PDF
+                  </a>
+                </Button>
+              )}
             </div>
 
             {/* Details Grid */}
@@ -416,8 +595,79 @@ export function BookDetails({ listing, relatedListings }: BookDetailsProps) {
               </CardContent>
             </Card>
 
+            {availability === "sold" && (
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <h3 className="font-semibold">تقييم البائع بعد إتمام العملية</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="rating-stars">عدد النجوم</Label>
+                    <Select value={String(ratingValue)} onValueChange={(v) => setRatingValue(Number(v))}>
+                      <SelectTrigger id="rating-stars">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5 نجوم</SelectItem>
+                        <SelectItem value="4">4 نجوم</SelectItem>
+                        <SelectItem value="3">3 نجوم</SelectItem>
+                        <SelectItem value="2">2 نجوم</SelectItem>
+                        <SelectItem value="1">1 نجمة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rating-comment">تقييمك (اختياري)</Label>
+                    <Textarea
+                      id="rating-comment"
+                      value={ratingComment}
+                      onChange={(e) => setRatingComment(e.target.value)}
+                      placeholder="شارك تجربتك مع البائع..."
+                      rows={3}
+                    />
+                  </div>
+                  <Button onClick={handleRateSeller} disabled={ratingSubmitting} className="gap-2">
+                    <Star className="h-4 w-4" />
+                    {ratingSubmitting ? "جاري الإرسال..." : "إرسال التقييم"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Actions */}
             <div className="flex flex-col gap-3">
+              {availability === "available" && (
+                <Card>
+                  <CardContent className="p-4 space-y-3">
+                    <h3 className="font-semibold">تسجيل عملية الشراء</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="buyer-name">اسم المشتري</Label>
+                        <input
+                          id="buyer-name"
+                          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                          value={buyerName}
+                          onChange={(e) => setBuyerName(e.target.value)}
+                          placeholder="اكتب اسم المشتري"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="buyer-phone">رقم المشتري</Label>
+                        <input
+                          id="buyer-phone"
+                          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                          value={buyerPhone}
+                          onChange={(e) => setBuyerPhone(e.target.value)}
+                          placeholder="07xxxxxxxx"
+                          inputMode="tel"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">مرجع العملية سيتم حفظه ويبقى مع المشتري: SALE-{listing.id.slice(0, 8).toUpperCase()}</p>
+                    <Button onClick={handleCreateSale} disabled={saleSubmitting}>
+                      {saleSubmitting ? "جاري تسجيل العملية..." : "إتمام البيع بين البائع والمشتري"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
               <div className="flex gap-3">
                 <Button
                   size="lg"
@@ -446,7 +696,7 @@ export function BookDetails({ listing, relatedListings }: BookDetailsProps) {
                 </Button>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" size="sm" className="flex-1 gap-2">
+                <Button variant="outline" size="sm" className="flex-1 gap-2" onClick={handleShare}>
                   <Share2 className="w-4 h-4" />
                   مشاركة
                 </Button>

@@ -2,6 +2,8 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardContent } from "@/components/dashboard/dashboard-content"
 
+export const dynamic = "force-dynamic"
+
 export default async function DashboardListingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -20,7 +22,7 @@ export default async function DashboardListingsPage() {
   // Fetch user's listings with counts
   const { data: listings, count: totalListings } = await supabase
     .from("listings")
-    .select("*, course:courses(name)", { count: "exact" })
+    .select("*, course:courses(name_ar, name_en)", { count: "exact" })
     .eq("seller_id", user.id)
     .order("created_at", { ascending: false })
 

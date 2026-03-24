@@ -14,41 +14,70 @@ export default async function AccountPage() {
     redirect("/login?redirect=/account")
   }
 
-  const [{ data: profile }, { data: listings }, { data: faculties }, { data: majors }] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select(`
-          id,
-          full_name,
-          phone,
-          whatsapp,
-          faculty_id,
-          major_id,
-          faculty:faculties(id, name),
-          major:majors(id, name)
-        `)
-        .eq("id", user.id)
-        .single(),
-      supabase
-        .from("listings")
-        .select(`
-          id,
-          title,
-          price,
-          condition,
-          status,
-          availability,
-          images,
-          views_count,
-          created_at,
-          course:courses(name)
-        `)
-        .eq("seller_id", user.id)
-        .order("created_at", { ascending: false }),
-      supabase.from("faculties").select("id, name").order("id"),
-      supabase.from("majors").select("id, faculty_id, name").order("id"),
-    ])
+  const [{ data: profile }, { data: listings }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, phone, whatsapp, faculty_id, major_id")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("listings")
+      .select(`
+        id,
+        title,
+        price,
+        condition,
+        status,
+        availability,
+        images,
+        views_count,
+        created_at
+      `)
+      .eq("seller_id", user.id)
+      .order("created_at", { ascending: false }),
+  ])
+
+  const facultiesArResult = await supabase.from("faculties").select("id, name_ar").order("id")
+  const facultiesNameResult =
+    facultiesArResult.error
+      ? await supabase.from("faculties").select("id, name").order("id")
+      : { data: null }
+
+  const majorsArResult = await supabase
+    .from("majors")
+    .select("id, faculty_id, name_ar")
+    .order("id")
+  const majorsNameResult =
+    majorsArResult.error
+      ? await supabase.from("majors").select("id, faculty_id, name").order("id")
+      : { data: null }
+
+  const faculties = (facultiesArResult.data ??
+    facultiesNameResult.data?.map((f: { id: string; name: string }) => ({
+      id: f.id,
+      name_ar: f.name,
+    })) ??
+    []) as { id: string; name_ar: string }[]
+
+  const majors = (majorsArResult.data ??
+    majorsNameResult.data?.map((m: { id: string; faculty_id: string; name: string }) => ({
+      id: m.id,
+      faculty_id: m.faculty_id,
+      name_ar: m.name,
+    })) ??
+    []) as { id: string; faculty_id: string; name_ar: string }[]
+
+  const hydratedProfile = profile
+    ? {
+        ...profile,
+        faculty: profile.faculty_id
+          ? faculties.find((f) => f.id === profile.faculty_id) ?? null
+          : null,
+        major: profile.major_id
+          ? majors.find((m) => m.id === profile.major_id) ?? null
+          : null,
+      }
+    : null
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -56,10 +85,10 @@ export default async function AccountPage() {
       <main className="flex-1 bg-muted/30">
         <AccountContent
           userEmail={user.email ?? ""}
-          profile={profile}
+          profile={hydratedProfile}
           listings={listings || []}
-          faculties={faculties || []}
-          majors={majors || []}
+          faculties={faculties}
+          majors={majors}
         />
       </main>
       <Footer />

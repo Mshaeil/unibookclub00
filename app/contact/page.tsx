@@ -33,7 +33,7 @@ export default function ContactPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setStatus(data.error || "فشل إرسال الرسالة")
+        setStatus(data.details ? `${data.error}: ${data.details}` : (data.error || "فشل إرسال الرسالة"))
       } else {
         setStatus("تم إرسال رسالتك بنجاح")
         setName("")
@@ -143,7 +143,13 @@ export default function ContactPage() {
                     </div>
 
                     {status && (
-                      <p className="text-sm text-center text-muted-foreground">{status}</p>
+                      <p
+                        className={`text-sm text-center ${
+                          status.startsWith("تم") ? "text-green-600" : "text-destructive"
+                        }`}
+                      >
+                        {status}
+                      </p>
                     )}
 
                     <Button type="submit" size="lg" className="w-full" disabled={loading}>

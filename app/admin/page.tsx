@@ -22,37 +22,221 @@ export default async function AdminPage() {
     redirect("/dashboard")
   }
 
-  const [{ data: listings }, { data: users }, { data: reports }, { data: faculties }, { data: majors }, { data: courses }] = await Promise.all([
-    supabase
-      .from("listings")
-      .select(`
-        id, title, price, status, availability, created_at,
-        seller:profiles!listings_seller_id_fkey(id, full_name),
-        course:courses(id, name)
-      `)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("id, full_name, phone, whatsapp, role, created_at, is_active")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("reports")
-      .select(`
-        id, reason, details, status, created_at,
-        listing:listings(id, title),
-        reporter:profiles!reports_reporter_id_fkey(id, full_name)
-      `)
-      .order("created_at", { ascending: false }),
-    supabase.from("faculties").select("id, name").order("id"),
-    supabase.from("majors").select("id, faculty_id, name").order("id"),
-    supabase.from("courses").select("id, major_id, name").order("id"),
-  ])
+const [
+  listingsResult,
+  usersResult,
+  reportsByReporterResult,
+  reportsByUserResult,
+  salesResult,
+  sellerReviewsResult,
+  facultiesResult,
+  majorsResult,
+  coursesResult,
+] = await Promise.all([
+  supabase
+  .from("listings")
+  .select("id, title, price, status, availability, created_at, seller_id, course_id")
+  .order("created_at", { ascending: false }),
+  supabase
+    .from("profiles")
+    .select("id, full_name, phone, whatsapp, role, created_at")
+    .order("created_at", { ascending: false }),
+  supabase
+    .from("reports")
+    .select("id, reason, details, status, created_at, listing_id, reporter_id")
+    .order("created_at", { ascending: false }),
+  supabase
+    .from("reports")
+    .select("id, reason, details, status, created_at, listing_id, user_id")
+    .order("created_at", { ascending: false }),
+  supabase
+    .from("sales")
+    .select("id, listing_id, seller_id, buyer_id, buyer_name, buyer_phone, reference_code, created_at")
+    .order("created_at", { ascending: false }),
+  supabase
+    .from("seller_reviews")
+    .select("id, seller_id, reviewer_id, listing_id, rating, comment, created_at")
+    .order("created_at", { ascending: false }),
+  supabase.from("faculties").select("id, name_ar, name").order("id"),
+  supabase.from("majors").select("id, faculty_id, name_ar, name").order("id"),
+  supabase.from("courses").select("id, major_id, name_ar, name").order("id"),
+])
+
+if (listingsResult.error) {
+  if (listingsResult.error) {
+    console.error("Admin listings query error:", {
+      message: listingsResult.error.message,
+      details: listingsResult.error.details,
+      hint: listingsResult.error.hint,
+      code: listingsResult.error.code,
+    })
+  }
+}
+if (usersResult.error) {
+  console.error("Admin users query error:", usersResult.error)
+}
+const reportsResult =
+  !reportsByReporterResult.error
+    ? reportsByReporterResult
+    : !reportsByUserResult.error
+      ? reportsByUserResult
+      : reportsByReporterResult
+
+if (reportsResult.error) {
+  console.error("Admin reports query error:", reportsResult.error)
+}
+if (salesResult.error && salesResult.error.code !== "PGRST205") {
+  console.error("Admin sales query error:", salesResult.error)
+}
+if (sellerReviewsResult.error && sellerReviewsResult.error.code !== "PGRST205") {
+  console.error("Admin seller reviews query error:", sellerReviewsResult.error)
+}
+if (facultiesResult.error) {
+  console.error("Admin faculties query error:", facultiesResult.error)
+}
+if (majorsResult.error) {
+  console.error("Admin majors query error:", majorsResult.error)
+}
+if (coursesResult.error) {
+  console.error("Admin courses query error:", coursesResult.error)
+}
+
+const listings = listingsResult.data || []
+const users = (usersResult.data || []).map((u: {
+  id: string
+  full_name: string | null
+  phone: string | null
+  whatsapp: string | null
+  role: "user" | "admin"
+  created_at: string
+}) => ({
+  ...u,
+  is_active: true,
+}))
+const rawReports = (reportsResult.data || []) as {
+  id: string
+  reason: string
+  details: string | null
+  status: "pending" | "reviewed" | "resolved" | "dismissed"
+  created_at: string
+  listing_id: string
+  reporter_id?: string
+  user_id?: string
+}[]
+const rawSales = ((salesResult.error && salesResult.error.code === "PGRST205")
+  ? []
+  : salesResult.data || []) as {
+  id: string
+  listing_id: string
+  seller_id: string
+  buyer_id: string | null
+  buyer_name: string
+  buyer_phone: string
+  reference_code: string
+  created_at: string
+}[]
+const rawSellerReviews = ((sellerReviewsResult.error && sellerReviewsResult.error.code === "PGRST205")
+  ? []
+  : sellerReviewsResult.data || []) as {
+  id: string
+  seller_id: string
+  reviewer_id: string
+  listing_id: string
+  rating: number
+  comment: string | null
+  created_at: string
+}[]
+const faculties = (facultiesResult.data || []).map((f: { id: string; name_ar?: string | null; name?: string | null }) => ({
+  id: f.id,
+  name: f.name_ar || f.name || "-",
+}))
+const majors = (majorsResult.data || []).map((m: { id: string; faculty_id: string; name_ar?: string | null; name?: string | null }) => ({
+  id: m.id,
+  faculty_id: m.faculty_id,
+  name: m.name_ar || m.name || "-",
+}))
+const courses = (coursesResult.data || []).map((c: { id: string; major_id: string; name_ar?: string | null; name?: string | null }) => ({
+  id: c.id,
+  major_id: c.major_id,
+  name: c.name_ar || c.name || "-",
+}))
+
+const listingIds = Array.from(new Set(rawReports.map((r) => r.listing_id).filter(Boolean)))
+const reporterIds = Array.from(new Set(rawReports.map((r) => r.reporter_id || r.user_id).filter(Boolean))) as string[]
+const salesListingIds = Array.from(new Set(rawSales.map((s) => s.listing_id).filter(Boolean)))
+const salesSellerIds = Array.from(new Set(rawSales.map((s) => s.seller_id).filter(Boolean)))
+const salesBuyerIds = Array.from(new Set(rawSales.map((s) => s.buyer_id).filter(Boolean))) as string[]
+const reviewSellerIds = Array.from(new Set(rawSellerReviews.map((r) => r.seller_id).filter(Boolean)))
+const reviewReviewerIds = Array.from(new Set(rawSellerReviews.map((r) => r.reviewer_id).filter(Boolean)))
+const reviewListingIds = Array.from(new Set(rawSellerReviews.map((r) => r.listing_id).filter(Boolean)))
+const allProfileIds = Array.from(new Set([
+  ...reporterIds,
+  ...salesSellerIds,
+  ...salesBuyerIds,
+  ...reviewSellerIds,
+  ...reviewReviewerIds,
+]))
+const allListingIds = Array.from(new Set([
+  ...listingIds,
+  ...salesListingIds,
+  ...reviewListingIds,
+]))
+
+const [allListingsHydrationResult, allUsersHydrationResult] = await Promise.all([
+  allListingIds.length
+    ? supabase.from("listings").select("id, title").in("id", allListingIds)
+    : Promise.resolve({ data: [], error: null }),
+  allProfileIds.length
+    ? supabase.from("profiles").select("id, full_name").in("id", allProfileIds)
+    : Promise.resolve({ data: [], error: null }),
+])
+
+if (allListingsHydrationResult.error) {
+  console.error("Admin listings hydration query error:", allListingsHydrationResult.error)
+}
+if (allUsersHydrationResult.error) {
+  console.error("Admin users hydration query error:", allUsersHydrationResult.error)
+}
+
+const listingById = new Map((allListingsHydrationResult.data || []).map((l: { id: string; title: string }) => [l.id, l]))
+const userById = new Map((allUsersHydrationResult.data || []).map((u: { id: string; full_name: string | null }) => [u.id, u]))
+
+const reports = rawReports.map((r) => ({
+  id: r.id,
+  reason: r.reason,
+  details: r.details,
+  status: r.status,
+  created_at: r.created_at,
+  listing: listingById.get(r.listing_id) || null,
+  reporter: userById.get((r.reporter_id || r.user_id) as string) || null,
+}))
+const sales = rawSales.map((s) => ({
+  id: s.id,
+  buyer_name: s.buyer_name,
+  buyer_phone: s.buyer_phone,
+  reference_code: s.reference_code,
+  created_at: s.created_at,
+  listing: listingById.get(s.listing_id) || null,
+  seller: userById.get(s.seller_id) || null,
+  buyer: s.buyer_id ? userById.get(s.buyer_id) || null : null,
+}))
+const sellerReviews = rawSellerReviews.map((r) => ({
+  id: r.id,
+  rating: r.rating,
+  comment: r.comment,
+  created_at: r.created_at,
+  listing: listingById.get(r.listing_id) || null,
+  seller: userById.get(r.seller_id) || null,
+  reviewer: userById.get(r.reviewer_id) || null,
+}))
 
   return (
     <AdminDashboard
-      listings={listings || []}
+      listings={(listings || []) as Parameters<typeof AdminDashboard>[0]["listings"]}
       users={users || []}
-      reports={reports || []}
+      reports={reports as Parameters<typeof AdminDashboard>[0]["reports"]}
+      sales={sales as Parameters<typeof AdminDashboard>[0]["sales"]}
+      sellerReviews={sellerReviews as Parameters<typeof AdminDashboard>[0]["sellerReviews"]}
       faculties={faculties || []}
       majors={majors || []}
       courses={courses || []}

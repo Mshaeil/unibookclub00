@@ -41,7 +41,9 @@ type Listing = {
   views_count: number
   created_at: string
   course: {
-    name: string
+    name_ar?: string
+    name_en?: string
+    name?: string
   } | null
 }
 
@@ -91,6 +93,24 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
 
     if (error) {
       console.error("Failed to delete listing:", error)
+      return
+    }
+
+    router.refresh()
+  }
+
+  async function handleMarkAsSold(listingId: string) {
+    const ok = window.confirm("تأكيد تحويل الإعلان إلى تم البيع؟")
+    if (!ok) return
+
+    const { error } = await supabase
+      .from("listings")
+      .update({ status: "sold", availability: "sold" })
+      .eq("id", listingId)
+
+    if (error) {
+      console.error("Failed to mark listing as sold:", error)
+      window.alert("تعذر تحديث حالة الإعلان إلى تم البيع")
       return
     }
 
@@ -257,7 +277,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                           <h3 className="font-medium truncate">{listing.title}</h3>
                           {listing.course && (
                             <p className="text-sm text-muted-foreground">
-                              {listing.course.name}
+                              {listing.course.name_ar ?? listing.course.name_en ?? listing.course.name ?? "-"}
                             </p>
                           )}
                         </div>
@@ -283,34 +303,47 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                     </div>
 
                     {/* Actions */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="flex-shrink-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/book/${listing.id}`}>
-                            <ExternalLink className="ml-2 h-4 w-4" />
-                            عرض الإعلان
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/listings/${listing.id}/edit`}>
-                            <Edit className="ml-2 h-4 w-4" />
-                            تعديل
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteListing(listing.id)}
+                    <div className="flex items-center gap-2">
+                      {listing.status !== "sold" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => handleMarkAsSold(listing.id)}
                         >
-                          <Trash2 className="ml-2 h-4 w-4" />
-                          حذف
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <ShoppingBag className="h-4 w-4" />
+                          تم البيع
+                        </Button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="flex-shrink-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/book/${listing.id}`}>
+                              <ExternalLink className="ml-2 h-4 w-4" />
+                              عرض الإعلان
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/listings/${listing.id}/edit`}>
+                              <Edit className="ml-2 h-4 w-4" />
+                              تعديل
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteListing(listing.id)}
+                          >
+                            <Trash2 className="ml-2 h-4 w-4" />
+                            حذف
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 )
               })}

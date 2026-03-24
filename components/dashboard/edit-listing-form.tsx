@@ -79,7 +79,7 @@ export function EditListingForm({
 
   const [formData, setFormData] = useState({
     title: listing.title,
-    description: listing.description || "",
+    description: (listing.description || "").replace(/\s*\[PDF_FILE\][\s\S]*?\[\/PDF_FILE\]\s*/, "").trim(),
     price: listing.price.toString(),
     condition: listing.condition,
     facultyId: initialFacultyId,
@@ -92,6 +92,10 @@ export function EditListingForm({
 
   const [existingImages, setExistingImages] = useState<string[]>(listing.images || [])
   const [newImages, setNewImages] = useState<{ file: File; preview: string }[]>([])
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [existingPdfPath, setExistingPdfPath] = useState<string | null>(
+    listing.description?.match(/\[PDF_FILE\](.*?)\[\/PDF_FILE\]/)?.[1] || null
+  )
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -154,12 +158,30 @@ export function EditListingForm({
         uploadedPaths.push(data.pathname)
       }
 
+      let finalPdfPath = existingPdfPath
+      if (pdfFile) {
+        const fd = new FormData()
+        fd.append("file", pdfFile)
+        const pdfRes = await fetch("/api/upload", { method: "POST", body: fd })
+        if (!pdfRes.ok) throw new Error("فشل رفع ملف PDF")
+        const pdfData = await pdfRes.json()
+        finalPdfPath = pdfData.pathname || null
+      }
+
+      const cleanDescription = (formData.description || "").replace(
+        /\s*\[PDF_FILE\][\s\S]*?\[\/PDF_FILE\]\s*/,
+        "",
+      ).trim()
+
       // Update listing
       const { error: updateError } = await supabase
         .from("listings")
         .update({
           title: formData.title.trim(),
-          description: formData.description.trim() || null,
+          description:
+            (cleanDescription || "") +
+              (finalPdfPath ? `\n\n[PDF_FILE]${finalPdfPath}[/PDF_FILE]` : "") ||
+            null,
           price: parseFloat(formData.price),
           condition: formData.condition,
           faculty_id: formData.facultyId || null,
@@ -245,10 +267,23 @@ export function EditListingForm({
         </Alert>
       )}
 
-      {/* Images */}
+      {/* Images + PDF */}
       <Card>
-        <CardContent className="pt-6">
-          <Label className="text-base font-medium mb-4 block">صور الكتاب *</Label>
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <Label className="text-base font-medium">صور الكتاب *</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="pdf" className="text-sm text-muted-foreground">PDF اختياري</Label>
+              <Input
+                id="pdf"
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                disabled={loading}
+                className="w-[180px]"
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {existingImages.map((path, index) => (
               <div key={`existing-${index}`} className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
@@ -304,6 +339,17 @@ export function EditListingForm({
               </label>
             )}
           </div>
+          {existingPdfPath && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <a href={`/api/file?pathname=${encodeURIComponent(existingPdfPath)}`} target="_blank" rel="noreferrer" className="hover:underline">
+                عرض ملف PDF الحالي
+              </a>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setExistingPdfPath(null)}>
+                حذف PDF
+              </Button>
+            </div>
+          )}
+          {pdfFile && <p className="text-xs text-muted-foreground">تم اختيار: {pdfFile.name}</p>}
         </CardContent>
       </Card>
 
@@ -441,7 +487,7 @@ export function EditListingForm({
               </SelectTrigger>
               <SelectContent>
                 {filteredMajors.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.name_ar}</SelectItem>
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
