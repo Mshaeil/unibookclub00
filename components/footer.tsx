@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { BookOpen, Facebook, Instagram, Twitter } from "lucide-react"
+import { BookOpen } from "lucide-react"
 
 export function Footer() {
   return (
@@ -21,17 +21,12 @@ export function Footer() {
               منصة حصرية لطلاب جامعة العلوم التطبيقية لبيع وشراء الكتب الجامعية. 
               نهدف لتسهيل الوصول إلى المراجع الدراسية بأسعار مناسبة.
             </p>
-            <div className="flex gap-4">
-              <a href="#" className="p-2 rounded-lg bg-sidebar-accent hover:bg-sidebar-primary transition-colors">
-                <Facebook className="h-5 w-5" />
+            <p className="text-sm text-sidebar-foreground/70">
+              البريد الرسمي:{" "}
+              <a href="mailto:support@unibookclub.com" className="hover:text-sidebar-foreground underline underline-offset-4">
+                support@unibookclub.com
               </a>
-              <a href="#" className="p-2 rounded-lg bg-sidebar-accent hover:bg-sidebar-primary transition-colors">
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-sidebar-accent hover:bg-sidebar-primary transition-colors">
-                <Twitter className="h-5 w-5" />
-              </a>
-            </div>
+            </p>
           </div>
 
           {/* Quick Links */}
