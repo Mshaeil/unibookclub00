@@ -15,18 +15,18 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("ar")
 
   useEffect(() => {
-    const saved = typeof window !== "undefined" ? localStorage.getItem("site_lang") : null
-    const lang: Language = saved === "en" ? "en" : "ar"
-    setLanguageState(lang)
-    document.documentElement.lang = lang
-    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"
+    // Keep Arabic as the hard default on load.
+    setLanguageState("ar")
+    document.documentElement.lang = "ar"
+    document.documentElement.dir = "rtl"
   }, [])
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem("site_lang", lang)
     document.documentElement.lang = lang
-    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"
+    // Keep layout direction fixed as requested.
+    document.documentElement.dir = "rtl"
   }
 
   const value = useMemo(() => ({ language, setLanguage }), [language])

@@ -94,16 +94,16 @@ export function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              {language === "ar" ? "الرئيسية" : "Home"}
+              الرئيسية
             </Link>
             <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              {language === "ar" ? "تصفح الكتب" : "Browse Books"}
+              تصفح الكتب
             </Link>
             <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              {language === "ar" ? "الكليات" : "Faculties"}
+              الكليات
             </Link>
             <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              {language === "ar" ? "كيف يعمل" : "How It Works"}
+              كيف يعمل
             </Link>
           </nav>
 
@@ -233,16 +233,16 @@ export function Header() {
           <div className="md:hidden py-4 space-y-4 border-t border-border/50">
             <nav className="flex flex-col gap-3">
               <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                {language === "ar" ? "الرئيسية" : "Home"}
+                الرئيسية
               </Link>
               <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                {language === "ar" ? "تصفح الكتب" : "Browse Books"}
+                تصفح الكتب
               </Link>
               <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                {language === "ar" ? "الكليات" : "Faculties"}
+                الكليات
               </Link>
               <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                {language === "ar" ? "كيف يعمل" : "How It Works"}
+                كيف يعمل
               </Link>
             </nav>
             <div className="flex flex-col gap-2 pt-2">
