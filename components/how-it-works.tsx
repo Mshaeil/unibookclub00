@@ -10,17 +10,19 @@ import {
   MessageSquare,
   ShoppingBag
 } from "lucide-react"
+import { useLanguage } from "@/components/language-provider"
 
 export function HowItWorks() {
+  const { language } = useLanguage()
   return (
     <section className="py-16 md:py-20 bg-muted/30 border-y border-border/50">
       <div className="container mx-auto px-4">
         <div className="text-center space-y-4 mb-12">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-            كيف تعمل المنصة؟
+            {language === "ar" ? "كيف تعمل المنصة؟" : "How Does the Platform Work?"}
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            خطوات بسيطة للبدء في البيع أو الشراء
+            {language === "ar" ? "خطوات بسيطة للبدء في البيع أو الشراء" : "Simple steps to start buying or selling"}
           </p>
         </div>
 
@@ -31,7 +33,7 @@ export function HowItWorks() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <BookPlus className="h-5 w-5 text-primary" />
               </div>
-              <h3 className="text-xl font-bold text-foreground">للبائعين</h3>
+              <h3 className="text-xl font-bold text-foreground">{language === "ar" ? "للبائعين" : "For Sellers"}</h3>
             </div>
             
             <div className="space-y-4">
@@ -42,9 +44,9 @@ export function HowItWorks() {
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
                     <UserPlus className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-foreground">سجّل حسابك</span>
+                    <span className="font-medium text-foreground">{language === "ar" ? "سجّل حسابك" : "Create your account"}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">باستخدام بريدك الجامعي للتوثيق</p>
+                  <p className="text-sm text-muted-foreground">{language === "ar" ? "باستخدام بريدك الجامعي للتوثيق" : "Use your university email for verification"}</p>
                 </div>
               </div>
 
@@ -55,9 +57,9 @@ export function HowItWorks() {
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
                     <BookPlus className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-foreground">أضف كتابك</span>
+                    <span className="font-medium text-foreground">{language === "ar" ? "أضف كتابك" : "Add your book"}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">صور واضحة ومعلومات دقيقة عن الكتاب</p>
+                  <p className="text-sm text-muted-foreground">{language === "ar" ? "صور واضحة ومعلومات دقيقة عن الكتاب" : "Clear photos and accurate details"}</p>
                 </div>
               </div>
 
@@ -68,9 +70,9 @@ export function HowItWorks() {
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
                     <ClipboardCheck className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-foreground">انتظر المراجعة</span>
+                    <span className="font-medium text-foreground">{language === "ar" ? "انتظر المراجعة" : "Wait for review"}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">نراجع الإعلان خلال 24 ساعة</p>
+                  <p className="text-sm text-muted-foreground">{language === "ar" ? "نراجع الإعلان خلال 24 ساعة" : "Listing review within 24 hours"}</p>
                 </div>
               </div>
 
@@ -81,9 +83,9 @@ export function HowItWorks() {
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
                     <Handshake className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-foreground">بع لطلاب الجامعة</span>
+                    <span className="font-medium text-foreground">{language === "ar" ? "بع لطلاب الجامعة" : "Sell to university students"}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">تواصل مع المشترين وأتمم الصفقة</p>
+                  <p className="text-sm text-muted-foreground">{language === "ar" ? "تواصل مع المشترين وأتمم الصفقة" : "Contact buyers and complete the deal"}</p>
                 </div>
               </div>
             </div>
@@ -95,7 +97,7 @@ export function HowItWorks() {
               <div className="w-10 h-10 rounded-xl bg-secondary/20 flex items-center justify-center">
                 <ShoppingBag className="h-5 w-5 text-secondary" />
               </div>
-              <h3 className="text-xl font-bold text-foreground">للمشترين</h3>
+              <h3 className="text-xl font-bold text-foreground">{language === "ar" ? "للمشترين" : "For Buyers"}</h3>
             </div>
             
             <div className="space-y-4">

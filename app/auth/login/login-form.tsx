@@ -10,8 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { BookOpen, Loader2, Mail, Lock, AlertCircle } from "lucide-react"
+import { useTranslate } from "@/components/language-provider"
 
 export default function LoginForm() {
+  const t = useTranslate()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || "/dashboard"
@@ -24,12 +26,12 @@ export default function LoginForm() {
   function mapAuthError(message: string) {
     const lower = message.toLowerCase()
     if (lower.includes("unsupported provider") || lower.includes("provider is not enabled")) {
-      return "تسجيل الدخول عبر Google غير مفعّل حالياً في إعدادات المنصة. يرجى تفعيل مزوّد Google في Supabase (Authentication > Providers > Google)."
+      return t("تسجيل الدخول عبر Google غير مفعّل حالياً في إعدادات المنصة. يرجى تفعيل مزوّد Google في Supabase (Authentication > Providers > Google).", "Google sign-in is not enabled in Supabase settings.")
     }
     if (lower.includes("invalid login credentials")) {
-      return "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+      return t("البريد الإلكتروني أو كلمة المرور غير صحيحة", "Invalid email or password")
     }
-    return message || "حدث خطأ أثناء تسجيل الدخول"
+    return message || t("حدث خطأ أثناء تسجيل الدخول", "Login failed")
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -80,14 +82,14 @@ export default function LoginForm() {
             </div>
             <span className="text-2xl font-bold text-foreground">UniBookClub</span>
           </Link>
-          <p className="text-muted-foreground">مرحباً بعودتك! سجّل دخولك للمتابعة</p>
+          <p className="text-muted-foreground">{t("مرحباً بعودتك! سجّل دخولك للمتابعة", "Welcome back! Sign in to continue")}</p>
         </div>
 
         <Card className="shadow-lg">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">تسجيل الدخول</CardTitle>
+            <CardTitle className="text-2xl font-bold">{t("تسجيل الدخول", "Sign In")}</CardTitle>
             <CardDescription>
-              أدخل بيانات حسابك للوصول إلى لوحة التحكم
+              {t("أدخل بيانات حسابك للوصول إلى لوحة التحكم", "Enter your account details")}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
@@ -100,7 +102,7 @@ export default function LoginForm() {
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Label htmlFor="email">{t("البريد الإلكتروني", "Email")}</Label>
                 <div className="relative">
                   <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -118,12 +120,12 @@ export default function LoginForm() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">كلمة المرور</Label>
+                  <Label htmlFor="password">{t("كلمة المرور", "Password")}</Label>
                   <Link 
                     href="/forgot-password" 
                     className="text-sm text-primary hover:underline"
                   >
-                    نسيت كلمة المرور؟
+                    {t("نسيت كلمة المرور؟", "Forgot password?")}
                   </Link>
                 </div>
                 <div className="relative">
@@ -149,22 +151,22 @@ export default function LoginForm() {
                 disabled={loading}
                 onClick={handleGoogleLogin}
               >
-                تسجيل الدخول عبر Google
+                {t("تسجيل الدخول عبر Google", "Continue with Google")}
               </Button>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري تسجيل الدخول...
+                    {t("جاري تسجيل الدخول...", "Signing in...")}
                   </>
                 ) : (
-                  "تسجيل الدخول"
+                  t("تسجيل الدخول", "Sign In")
                 )}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
-                ليس لديك حساب؟{" "}
+                {t("ليس لديك حساب؟", "Don't have an account?")}{" "}
                 <Link href="/register" className="font-medium text-primary hover:underline">
-                  أنشئ حساباً جديداً
+                  {t("أنشئ حساباً جديداً", "Create one")}
                 </Link>
               </p>
             </CardFooter>

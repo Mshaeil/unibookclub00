@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BookOpen, ChevronLeft } from "lucide-react"
+import { useLanguage } from "@/components/language-provider"
 
 type Listing = {
   id: string
@@ -35,6 +36,7 @@ type Props = {
 }
 
 export function BooksSection({ listings }: Props) {
+  const { language } = useLanguage()
   const displayListings = listings.slice(0, 8)
   const availableCount = listings.filter((l) => (l.availability || "available") === "available").length
 
@@ -45,14 +47,14 @@ export function BooksSection({ listings }: Props) {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
             <BookOpen className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-primary">
-              {availableCount} كتاب متاح
+              {availableCount} {language === "ar" ? "كتاب متاح" : "Available books"}
             </span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
-            اعثر على كتابك
+            {language === "ar" ? "اعثر على كتابك" : "Find your book"}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-pretty">
-            تصفح الكتب المتاحة حسب الكلية والتخصص والمادة
+            {language === "ar" ? "تصفح الكتب المتاحة حسب الكلية والتخصص والمادة" : "Browse books by faculty, major, and course"}
           </p>
         </div>
 
@@ -102,7 +104,7 @@ export function BooksSection({ listings }: Props) {
             <div className="text-center mt-12">
               <Button variant="outline" size="lg" asChild className="gap-2">
                 <Link href="/browse">
-                  تصفح كل الكتب
+                  {language === "ar" ? "تصفح كل الكتب" : "Browse all books"}
                   <ChevronLeft className="h-4 w-4" />
                 </Link>
               </Button>
@@ -114,13 +116,13 @@ export function BooksSection({ listings }: Props) {
               <BookOpen className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              لا توجد كتب متاحة حالياً
+              {language === "ar" ? "لا توجد كتب متاحة حالياً" : "No books available right now"}
             </h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              تصفح الصفحة لاحقاً أو أضف كتبك للبيع
+              {language === "ar" ? "تصفح الصفحة لاحقاً أو أضف كتبك للبيع" : "Check back later or add your books for sale"}
             </p>
             <Button asChild>
-              <Link href="/browse">تصفح الكتب</Link>
+              <Link href="/browse">{language === "ar" ? "تصفح الكتب" : "Browse books"}</Link>
             </Button>
           </div>
         )}

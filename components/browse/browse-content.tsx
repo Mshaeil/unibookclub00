@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react"
+import { useLanguage, useTranslate } from "@/components/language-provider"
 
 type Listing = {
   id: string
@@ -124,6 +125,8 @@ export function BrowseContent({
   courses,
   filters 
 }: Props) {
+  const { language } = useLanguage()
+  const t = useTranslate()
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -193,7 +196,7 @@ export function BrowseContent({
           <SelectContent>
             <SelectItem value={ALL_VALUE}>جميع الكليات</SelectItem>
             {faculties.map((f) => (
-              <SelectItem key={f.id} value={f.id}>{f.name_ar ?? f.name ?? "-"}</SelectItem>
+              <SelectItem key={f.id} value={f.id}>{language === "ar" ? (f.name_ar ?? f.name ?? "-") : (f.name ?? f.name_ar ?? "-")}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -213,7 +216,7 @@ export function BrowseContent({
           <SelectContent>
             <SelectItem value={ALL_VALUE}>جميع التخصصات</SelectItem>
             {filteredMajors.map((m) => (
-              <SelectItem key={m.id} value={m.id}>{m.name_ar ?? m.name ?? "-"}</SelectItem>
+              <SelectItem key={m.id} value={m.id}>{language === "ar" ? (m.name_ar ?? m.name ?? "-") : (m.name ?? m.name_ar ?? "-")}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -234,7 +237,7 @@ export function BrowseContent({
             <SelectItem value={ALL_VALUE}>جميع المواد</SelectItem>
             {filteredCourses.map((c) => (
               <SelectItem key={c.id} value={c.id}>
-                {c.code ? `${c.code} - ` : ""}{c.name ?? c.name_ar ?? "-"}
+                {c.code ? `${c.code} - ` : ""}{language === "ar" ? (c.name_ar ?? c.name ?? "-") : (c.name ?? c.name_ar ?? "-")}
               </SelectItem>
             ))}
           </SelectContent>
@@ -283,7 +286,7 @@ export function BrowseContent({
 
       {/* Price Range */}
       <div className="space-y-2">
-        <Label>نطاق السعر (د.أ)</Label>
+        <Label>{t("نطاق السعر (د.أ)", "Price Range (JOD)")}</Label>
         <div className="flex gap-2">
           <Input
             type="number"
@@ -305,7 +308,7 @@ export function BrowseContent({
       {hasFilters && (
         <Button variant="outline" onClick={clearFilters} className="w-full">
           <X className="ml-2 h-4 w-4" />
-          مسح الفلاتر
+          {t("مسح الفلاتر", "Clear Filters")}
         </Button>
       )}
     </div>
@@ -315,9 +318,9 @@ export function BrowseContent({
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">تصفح الكتب</h1>
+        <h1 className="text-2xl font-bold mb-2">{t("تصفح الكتب", "Browse Books")}</h1>
         <p className="text-muted-foreground">
-          {totalCount > 0 ? `${totalCount} كتاب متاح للبيع` : "ابحث عن الكتب الجامعية"}
+          {totalCount > 0 ? `${totalCount} ${t("كتاب متاح للبيع", "books available for sale")}` : t("ابحث عن الكتب الجامعية", "Find university books")}
         </p>
       </div>
 
@@ -327,24 +330,24 @@ export function BrowseContent({
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="ابحث عن كتاب أو مؤلف..."
+              placeholder={t("ابحث عن كتاب أو مؤلف...", "Search by title or author...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pr-10"
             />
           </div>
-          <Button type="submit">بحث</Button>
+          <Button type="submit">{t("بحث", "Search")}</Button>
         </form>
 
         <div className="flex gap-2">
           <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
             <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="الترتيب" />
+              <SelectValue placeholder={t("الترتيب", "Sort")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="latest">الأحدث</SelectItem>
-              <SelectItem value="price_low">السعر: الأقل</SelectItem>
-              <SelectItem value="price_high">السعر: الأعلى</SelectItem>
+              <SelectItem value="latest">{t("الأحدث", "Latest")}</SelectItem>
+              <SelectItem value="price_low">{t("السعر: الأقل", "Price: Low to High")}</SelectItem>
+              <SelectItem value="price_high">{t("السعر: الأعلى", "Price: High to Low")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -357,7 +360,7 @@ export function BrowseContent({
             </SheetTrigger>
             <SheetContent side="right" className="w-80">
               <SheetHeader>
-                <SheetTitle>الفلاتر</SheetTitle>
+                <SheetTitle>{t("الفلاتر", "Filters")}</SheetTitle>
               </SheetHeader>
               <div className="mt-6">
                 <FilterContent />
@@ -373,21 +376,21 @@ export function BrowseContent({
           <div className="space-y-4">
             <Card>
               <CardContent className="pt-6">
-                <h2 className="font-semibold mb-4">الفلاتر</h2>
+                <h2 className="font-semibold mb-4">{t("الفلاتر", "Filters")}</h2>
                 <FilterContent />
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <h2 className="font-semibold mb-3">أبرز البائعين</h2>
+                <h2 className="font-semibold mb-3">{t("أبرز البائعين", "Top Sellers")}</h2>
                 {topSellers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">لا يوجد بيانات مبيعات كافية حالياً</p>
+                  <p className="text-sm text-muted-foreground">{t("لا يوجد بيانات مبيعات كافية حالياً", "Not enough sales data yet")}</p>
                 ) : (
                   <div className="space-y-2">
                     {topSellers.map((seller, index) => (
                       <div key={seller.seller_id} className="flex items-center justify-between rounded-md border p-2 text-sm">
                         <span className="truncate">{index + 1}. {seller.full_name}</span>
-                        <Badge variant="outline">{seller.sold_count} مبيع</Badge>
+                        <Badge variant="outline">{seller.sold_count} {t("مبيع", "sales")}</Badge>
                       </div>
                     ))}
                   </div>
@@ -403,7 +406,7 @@ export function BrowseContent({
             <Card>
               <CardContent className="py-16 text-center">
                 <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">لا توجد نتائج</h3>
+                <h3 className="text-lg font-medium mb-2">{t("لا توجد نتائج", "No results")}</h3>
                 <p className="text-muted-foreground mb-4">
                   {hasFilters 
                     ? "حاول تغيير الفلاتر أو البحث بكلمات مختلفة" 
@@ -411,7 +414,7 @@ export function BrowseContent({
                 </p>
                 {hasFilters && (
                   <Button variant="outline" onClick={clearFilters}>
-                    مسح الفلاتر
+                    {t("مسح الفلاتر", "Clear Filters")}
                   </Button>
                 )}
               </CardContent>
@@ -441,31 +444,31 @@ export function BrowseContent({
                         <Badge 
                           className={`absolute top-2 right-2 ${conditionColors[listing.condition]}`}
                         >
-                          {conditionLabels[listing.condition]}
+                          {language === "ar" ? conditionLabels[listing.condition] : ({ new: "New", like_new: "Like New", good: "Good", acceptable: "Acceptable" }[listing.condition] || listing.condition)}
                         </Badge>
                         <Badge 
                           className={`absolute top-2 left-2 ${availabilityColors[availability]}`}
                         >
-                          {availabilityLabels[availability]}
+                          {language === "ar" ? availabilityLabels[availability] : ({ available: "Available", reserved: "Reserved", sold: "Sold" }[availability] || availability)}
                         </Badge>
                       </div>
                       <CardContent className="p-4">
                         <h3 className="font-medium line-clamp-1 mb-1">{listing.title}</h3>
                         {listing.course && (
                           <p className="text-sm text-muted-foreground line-clamp-1">
-                            {listing.course.code ? `${listing.course.code} - ` : ""}{listing.course.name_ar ?? listing.course.name ?? "-"}
+                            {listing.course.code ? `${listing.course.code} - ` : ""}{language === "ar" ? (listing.course.name_ar ?? listing.course.name ?? "-") : (listing.course.name_en ?? listing.course.name ?? listing.course.name_ar ?? "-")}
                           </p>
                         )}
                         <div className="flex items-center justify-between mt-3">
-                          <span className="text-lg font-bold text-primary">{listing.price} د.أ</span>
+                          <span className="text-lg font-bold text-primary">{listing.price} {language === "ar" ? "د.أ" : "JOD"}</span>
                           <span className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Eye className="h-3 w-3" />
                             {listing.views_count}
                           </span>
                         </div>
                         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{itemTypeLabels[listing.item_type] || "كتاب أصلي"}</span>
-                          {listing.negotiable && <span>قابل للتفاوض</span>}
+                          <span>{language === "ar" ? (itemTypeLabels[listing.item_type] || "كتاب أصلي") : ({ original: "Original Book", notes: "Notes", reference: "Reference", summary: "Summary" }[listing.item_type] || "Original Book")}</span>
+                          {listing.negotiable && <span>{t("قابل للتفاوض", "Negotiable")}</span>}
                         </div>
                       </CardContent>
                     </Card>
@@ -485,7 +488,7 @@ export function BrowseContent({
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                   <span className="text-sm text-muted-foreground px-4">
-                    صفحة {currentPage} من {totalPages}
+                    {t("صفحة", "Page")} {currentPage} {t("من", "of")} {totalPages}
                   </span>
                   <Button
                     variant="outline"

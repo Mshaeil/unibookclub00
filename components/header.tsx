@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useTheme } from "next-themes"
+import { useLanguage } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
 import { 
   DropdownMenu, 
@@ -26,19 +27,13 @@ export function Header() {
   const router = useRouter()
   const supabase = createClient()
   const { resolvedTheme, setTheme } = useTheme()
+  const { language, setLanguage } = useLanguage()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [language, setLanguage] = useState<"ar" | "en">("ar")
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const savedLang = localStorage.getItem("site_lang")
-    if (savedLang === "en" || savedLang === "ar") {
-      setLanguage(savedLang)
-      document.documentElement.lang = savedLang
-    }
-
     async function getUser() {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
@@ -68,8 +63,6 @@ export function Header() {
 
   function handleLanguageChange(nextLang: "ar" | "en") {
     setLanguage(nextLang)
-    localStorage.setItem("site_lang", nextLang)
-    document.documentElement.lang = nextLang
   }
 
   async function handleLogout() {

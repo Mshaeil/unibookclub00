@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, BookOpen, Search, Users } from "lucide-react"
+import { useLanguage } from "@/components/language-provider"
 
 type HeroStats = {
   availableBooks: number
@@ -11,6 +12,7 @@ type HeroStats = {
 }
 
 export function HeroSection({ stats }: { stats?: HeroStats }) {
+  const { language } = useLanguage()
   const availableBooks = stats?.availableBooks ?? 0
   const sellersCount = stats?.sellersCount ?? 0
   const soldCount = stats?.soldCount ?? 0
@@ -30,20 +32,23 @@ export function HeroSection({ stats }: { stats?: HeroStats }) {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>
-            <span className="text-sm font-medium text-primary">جامعة العلوم التطبيقية - Applied Science University</span>
+            <span className="text-sm font-medium text-primary">
+              {language === "ar" ? "جامعة العلوم التطبيقية" : "Applied Science University"}
+            </span>
           </div>
 
           {/* Main Title */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight text-balance">
-            كتبك الجامعية
+            {language === "ar" ? "كتبك الجامعية" : "Your University Books"}
             <br />
-            <span className="text-primary">في مكان واحد</span>
+            <span className="text-primary">{language === "ar" ? "في مكان واحد" : "In One Place"}</span>
           </h1>
 
           {/* Description */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-pretty">
-            بيع واشترِ كتبك الجامعية بسهولة. منصة حصرية لطلاب جامعة العلوم التطبيقية 
-            للتبادل الآمن والموثوق للكتب والمراجع الدراسية.
+            {language === "ar"
+              ? "بيع واشترِ كتبك الجامعية بسهولة. منصة حصرية لطلاب جامعة العلوم التطبيقية للتبادل الآمن والموثوق للكتب والمراجع الدراسية."
+              : "Buy and sell your university books easily. An exclusive platform for Applied Science University students for safe and trusted book exchange."}
           </p>
 
           {/* CTA Buttons */}
@@ -51,12 +56,12 @@ export function HeroSection({ stats }: { stats?: HeroStats }) {
             <Button size="lg" className="gap-2 px-8 text-base" asChild>
               <Link href="/browse">
                 <Search className="h-5 w-5" />
-                ابحث عن كتاب
+                {language === "ar" ? "ابحث عن كتاب" : "Find a Book"}
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="gap-2 px-8 text-base" asChild>
               <Link href="/dashboard/listings/new">
-                أضف كتابك للبيع
+                {language === "ar" ? "أضف كتابك للبيع" : "Sell Your Book"}
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
@@ -69,14 +74,14 @@ export function HeroSection({ stats }: { stats?: HeroStats }) {
                 <BookOpen className="h-6 w-6 text-primary" />
               </div>
               <div className="text-2xl md:text-3xl font-bold text-foreground">{availableBooks}+</div>
-              <div className="text-sm text-muted-foreground">كتاب متاح</div>
+              <div className="text-sm text-muted-foreground">{language === "ar" ? "كتاب متاح" : "Available Books"}</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-xl bg-secondary/10">
                 <Users className="h-6 w-6 text-secondary" />
               </div>
               <div className="text-2xl md:text-3xl font-bold text-foreground">{sellersCount}+</div>
-              <div className="text-sm text-muted-foreground">طالب مسجل</div>
+              <div className="text-sm text-muted-foreground">{language === "ar" ? "طالب مسجل" : "Registered Students"}</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-xl bg-accent/10">
@@ -85,7 +90,7 @@ export function HeroSection({ stats }: { stats?: HeroStats }) {
                 </svg>
               </div>
               <div className="text-2xl md:text-3xl font-bold text-foreground">{soldCount}+</div>
-              <div className="text-sm text-muted-foreground">عملية ناجحة</div>
+              <div className="text-sm text-muted-foreground">{language === "ar" ? "عملية ناجحة" : "Successful Deals"}</div>
             </div>
           </div>
         </div>

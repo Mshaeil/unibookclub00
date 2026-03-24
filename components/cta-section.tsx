@@ -3,8 +3,10 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, BookPlus, ShieldCheck, Zap } from "lucide-react"
+import { useLanguage } from "@/components/language-provider"
 
 export function CTASection() {
+  const { language } = useLanguage()
   return (
     <section id="about" className="py-16 md:py-24 bg-primary text-primary-foreground relative overflow-hidden">
       {/* Background Pattern */}
@@ -17,13 +19,14 @@ export function CTASection() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center space-y-8">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">
-              عندك كتب ما تحتاجها؟
+              {language === "ar" ? "عندك كتب ما تحتاجها؟" : "Got books you no longer need?"}
               <br />
-              <span className="text-primary-foreground/80">حولها إلى فلوس!</span>
+              <span className="text-primary-foreground/80">{language === "ar" ? "حولها إلى فلوس!" : "Turn them into cash!"}</span>
             </h2>
             <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto text-pretty">
-              انضم لمجتمع طلاب جامعة العلوم التطبيقية وابدأ ببيع كتبك اليوم. 
-              العملية سهلة وآمنة ومجانية تماماً.
+              {language === "ar"
+                ? "انضم لمجتمع طلاب جامعة العلوم التطبيقية وابدأ ببيع كتبك اليوم. العملية سهلة وآمنة ومجانية تماماً."
+                : "Join Applied Science University students and start selling your books today. It's easy, safe, and completely free."}
             </p>
 
             {/* Features */}
@@ -32,27 +35,27 @@ export function CTASection() {
                 <div className="w-14 h-14 mx-auto rounded-2xl bg-primary-foreground/10 flex items-center justify-center">
                   <Zap className="h-7 w-7" />
                 </div>
-                <h3 className="font-semibold text-lg">سريع وسهل</h3>
+                <h3 className="font-semibold text-lg">{language === "ar" ? "سريع وسهل" : "Fast and easy"}</h3>
                 <p className="text-sm text-primary-foreground/70">
-                  أضف كتابك في أقل من دقيقتين بخطوات بسيطة
+                  {language === "ar" ? "أضف كتابك في أقل من دقيقتين بخطوات بسيطة" : "List your book in under two minutes"}
                 </p>
               </div>
               <div className="text-center space-y-3 p-6 rounded-2xl bg-primary-foreground/5 backdrop-blur-sm">
                 <div className="w-14 h-14 mx-auto rounded-2xl bg-primary-foreground/10 flex items-center justify-center">
                   <ShieldCheck className="h-7 w-7" />
                 </div>
-                <h3 className="font-semibold text-lg">آمن وموثوق</h3>
+                <h3 className="font-semibold text-lg">{language === "ar" ? "آمن وموثوق" : "Safe and trusted"}</h3>
                 <p className="text-sm text-primary-foreground/70">
-                  جميع المستخدمين طلاب جامعة موثقون
+                  {language === "ar" ? "جميع المستخدمين طلاب جامعة موثقون" : "All users are verified university students"}
                 </p>
               </div>
               <div className="text-center space-y-3 p-6 rounded-2xl bg-primary-foreground/5 backdrop-blur-sm">
                 <div className="w-14 h-14 mx-auto rounded-2xl bg-primary-foreground/10 flex items-center justify-center">
                   <BookPlus className="h-7 w-7" />
                 </div>
-                <h3 className="font-semibold text-lg">مجاني 100%</h3>
+                <h3 className="font-semibold text-lg">{language === "ar" ? "مجاني 100%" : "100% free"}</h3>
                 <p className="text-sm text-primary-foreground/70">
-                  لا عمولات ولا رسوم خفية على الإطلاق
+                  {language === "ar" ? "لا عمولات ولا رسوم خفية على الإطلاق" : "No commissions and no hidden fees"}
                 </p>
               </div>
             </div>
@@ -65,7 +68,7 @@ export function CTASection() {
                 asChild
               >
                 <Link href="/dashboard/listings/new">
-                  ابدأ البيع الآن
+                  {language === "ar" ? "ابدأ البيع الآن" : "Start selling now"}
                   <ArrowLeft className="h-5 w-5" />
                 </Link>
               </Button>
@@ -76,7 +79,7 @@ export function CTASection() {
                 asChild
               >
                 <Link href="/how-it-works">
-                  كيف يعمل الموقع؟
+                  {language === "ar" ? "كيف يعمل الموقع؟" : "How it works?"}
                 </Link>
               </Button>
             </div>

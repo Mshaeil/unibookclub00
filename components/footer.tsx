@@ -1,7 +1,11 @@
+"use client"
+
 import Link from "next/link"
 import { BookOpen } from "lucide-react"
+import { useLanguage } from "@/components/language-provider"
 
 export function Footer() {
+  const { language } = useLanguage()
   return (
     <footer className="bg-sidebar text-sidebar-foreground">
       <div className="container mx-auto px-4 py-12">
@@ -14,15 +18,18 @@ export function Footer() {
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-bold">UniBookClub</span>
-                <span className="text-xs text-sidebar-foreground/70">جامعة العلوم التطبيقية</span>
+                <span className="text-xs text-sidebar-foreground/70">
+                  {language === "ar" ? "جامعة العلوم التطبيقية" : "Applied Science University"}
+                </span>
               </div>
             </Link>
             <p className="text-sidebar-foreground/70 max-w-md text-sm leading-relaxed">
-              منصة حصرية لطلاب جامعة العلوم التطبيقية لبيع وشراء الكتب الجامعية. 
-              نهدف لتسهيل الوصول إلى المراجع الدراسية بأسعار مناسبة.
+              {language === "ar"
+                ? "منصة حصرية لطلاب جامعة العلوم التطبيقية لبيع وشراء الكتب الجامعية. نهدف لتسهيل الوصول إلى المراجع الدراسية بأسعار مناسبة."
+                : "An exclusive platform for Applied Science University students to buy and sell academic books."}
             </p>
             <p className="text-sm text-sidebar-foreground/70">
-              البريد الرسمي:{" "}
+              {language === "ar" ? "البريد الرسمي:" : "Official email:"}{" "}
               <a href="mailto:support@unibookclub.com" className="hover:text-sidebar-foreground underline underline-offset-4">
                 support@unibookclub.com
               </a>
@@ -31,35 +38,35 @@ export function Footer() {
 
           {/* Quick Links */}
           <div className="space-y-4">
-            <h3 className="font-semibold">روابط سريعة</h3>
+            <h3 className="font-semibold">{language === "ar" ? "روابط سريعة" : "Quick links"}</h3>
             <nav className="flex flex-col gap-2 text-sm">
               <Link href="/" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                الرئيسية
+                {language === "ar" ? "الرئيسية" : "Home"}
               </Link>
               <Link href="/browse" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                تصفح الكتب
+                {language === "ar" ? "تصفح الكتب" : "Browse books"}
               </Link>
               <Link href="#faculties" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                الكليات
+                {language === "ar" ? "الكليات" : "Faculties"}
               </Link>
               <Link href="/dashboard/listings/new" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                أضف كتابك
+                {language === "ar" ? "أضف كتابك" : "Add your book"}
               </Link>
             </nav>
           </div>
 
           {/* Support */}
           <div className="space-y-4">
-            <h3 className="font-semibold">المساعدة</h3>
+            <h3 className="font-semibold">{language === "ar" ? "المساعدة" : "Help"}</h3>
             <nav className="flex flex-col gap-2 text-sm">
               <Link href="/how-it-works" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                كيف يعمل الموقع؟
+                {language === "ar" ? "كيف يعمل الموقع؟" : "How it works?"}
               </Link>
               <Link href="/faq" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                الأسئلة الشائعة
+                {language === "ar" ? "الأسئلة الشائعة" : "FAQ"}
               </Link>
               <Link href="/contact" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                تواصل معنا
+                {language === "ar" ? "تواصل معنا" : "Contact us"}
               </Link>
             </nav>
           </div>
@@ -67,13 +74,13 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-sidebar-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-sidebar-foreground/60">
-          <p>© 2024 UniBookClub. جميع الحقوق محفوظة.</p>
+          <p>© 2024 UniBookClub. {language === "ar" ? "جميع الحقوق محفوظة." : "All rights reserved."}</p>
           <div className="flex gap-6">
             <Link href="/terms" className="hover:text-sidebar-foreground transition-colors">
-              سياسة الاستخدام
+              {language === "ar" ? "سياسة الاستخدام" : "Terms"}
             </Link>
             <Link href="/faq" className="hover:text-sidebar-foreground transition-colors">
-              الأسئلة الشائعة
+              {language === "ar" ? "الأسئلة الشائعة" : "FAQ"}
             </Link>
           </div>
         </div>

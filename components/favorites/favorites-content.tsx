@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage, useTranslate } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -26,12 +27,6 @@ type Props = {
   listings: Listing[]
 }
 
-const availabilityLabels: Record<string, string> = {
-  available: "متاح",
-  reserved: "محجوز",
-  sold: "مباع",
-}
-
 const availabilityColors: Record<string, string> = {
   available: "bg-emerald-100 text-emerald-800",
   reserved: "bg-amber-100 text-amber-800",
@@ -39,10 +34,17 @@ const availabilityColors: Record<string, string> = {
 }
 
 export function FavoritesContent({ listings: initialListings }: Props) {
+  const { language } = useLanguage()
+  const t = useTranslate()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const [listings, setListings] = useState<Listing[]>(initialListings)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const availabilityLabels: Record<string, string> = {
+    available: t("متاح", "Available"),
+    reserved: t("محجوز", "Reserved"),
+    sold: t("مباع", "Sold"),
+  }
 
   async function handleRemoveFavorite(listingId: string) {
     const {
@@ -64,9 +66,9 @@ export function FavoritesContent({ listings: initialListings }: Props) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">المفضلة</h1>
+        <h1 className="text-2xl font-bold">{t("المفضلة", "Favorites")}</h1>
         <p className="text-muted-foreground">
-          الكتب التي أضفتها إلى قائمة المفضلة
+          {t("الكتب التي أضفتها إلى قائمة المفضلة", "Books you added to favorites")}
         </p>
       </div>
 
@@ -74,12 +76,12 @@ export function FavoritesContent({ listings: initialListings }: Props) {
         <Card>
           <CardContent className="py-16 text-center">
             <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">لا توجد عناصر في المفضلة</h3>
+            <h3 className="text-lg font-medium mb-2">{t("لا توجد عناصر في المفضلة", "No favorites found")}</h3>
             <p className="text-muted-foreground mb-4">
-              تصفح الكتب وأضف ما يعجبك إلى المفضلة
+              {t("تصفح الكتب وأضف ما يعجبك إلى المفضلة", "Browse books and add what you like")}
             </p>
             <Button asChild>
-              <Link href="/browse">تصفح الكتب</Link>
+              <Link href="/browse">{t("تصفح الكتب", "Browse Books")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -123,7 +125,7 @@ export function FavoritesContent({ listings: initialListings }: Props) {
                   )}
                   <div className="flex items-center justify-between mt-3">
                     <span className="text-lg font-bold text-primary">
-                      {listing.price} د.أ
+                      {listing.price} {language === "ar" ? "د.أ" : "JOD"}
                     </span>
                     <span className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Eye className="h-3 w-3" />
@@ -132,7 +134,7 @@ export function FavoritesContent({ listings: initialListings }: Props) {
                   </div>
                   <div className="mt-3 flex gap-2">
                     <Button asChild size="sm" className="flex-1">
-                      <Link href={`/book/${listing.id}`}>عرض</Link>
+                      <Link href={`/book/${listing.id}`}>{t("عرض", "View")}</Link>
                     </Button>
                     <Button
                       size="sm"

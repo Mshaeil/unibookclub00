@@ -9,6 +9,7 @@ import {
   Pill,
   GraduationCap
 } from "lucide-react"
+import { useLanguage } from "@/components/language-provider"
 
 const faculties = [
   {
@@ -59,19 +60,20 @@ const faculties = [
 ]
 
 export function FacultiesSection() {
+  const { language } = useLanguage()
   return (
     <section id="faculties" className="py-16 md:py-24 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="text-center space-y-4 mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
             <GraduationCap className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">الكليات</span>
+            <span className="text-sm font-medium text-primary">{language === "ar" ? "الكليات" : "Faculties"}</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
-            تصفح حسب كليتك
+            {language === "ar" ? "تصفح حسب كليتك" : "Browse by your faculty"}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-pretty">
-            اختر كليتك للوصول السريع إلى الكتب المتاحة في تخصصك
+            {language === "ar" ? "اختر كليتك للوصول السريع إلى الكتب المتاحة في تخصصك" : "Pick your faculty for quick access to relevant books"}
           </p>
         </div>
 
@@ -88,8 +90,8 @@ export function FacultiesSection() {
                   </div>
                   <div className="flex-1 space-y-2">
                     <div>
-                      <h3 className="font-semibold text-foreground">{faculty.name}</h3>
-                      <p className="text-sm text-muted-foreground">{faculty.nameEn}</p>
+                      <h3 className="font-semibold text-foreground">{language === "ar" ? faculty.name : faculty.nameEn}</h3>
+                      <p className="text-sm text-muted-foreground">{language === "ar" ? faculty.nameEn : faculty.name}</p>
                     </div>
                     <div className="flex flex-wrap gap-1.5 pt-2">
                       {faculty.majors.slice(0, 3).map((major) => (

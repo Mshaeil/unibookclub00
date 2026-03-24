@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BookOpen, Loader2, Mail, Lock, User, Phone, GraduationCap, AlertCircle } from "lucide-react"
+import { useLanguage, useTranslate } from "@/components/language-provider"
 
 type Faculty = {
   id: string
@@ -26,6 +27,8 @@ type Major = {
 }
 
 export default function RegisterPage() {
+  const { language } = useLanguage()
+  const t = useTranslate()
   const router = useRouter()
   const supabase = createClient()
   
@@ -78,13 +81,13 @@ export default function RegisterPage() {
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError("كلمتا المرور غير متطابقتين")
+      setError(t("كلمتا المرور غير متطابقتين", "Passwords do not match"))
       setLoading(false)
       return
     }
 
     if (formData.password.length < 6) {
-      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+      setError(t("كلمة المرور يجب أن تكون 6 أحرف على الأقل", "Password must be at least 6 characters"))
       setLoading(false)
       return
     }
@@ -106,7 +109,7 @@ export default function RegisterPage() {
 
     if (error) {
       if (error.message.includes("already registered")) {
-        setError("هذا البريد الإلكتروني مسجل مسبقاً")
+        setError(t("هذا البريد الإلكتروني مسجل مسبقاً", "This email is already registered"))
       } else {
         setError(error.message)
       }
@@ -126,16 +129,16 @@ export default function RegisterPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <Mail className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl">تحقق من بريدك الإلكتروني</CardTitle>
+            <CardTitle className="text-2xl">{t("تحقق من بريدك الإلكتروني", "Check your email")}</CardTitle>
             <CardDescription className="text-base">
-              أرسلنا رابط التفعيل إلى <strong>{formData.email}</strong>
+              {t("أرسلنا رابط التفعيل إلى", "We sent an activation link to")} <strong>{formData.email}</strong>
               <br />
-              يرجى التحقق من بريدك الإلكتروني والنقر على الرابط لتفعيل حسابك
+              {t("يرجى التحقق من بريدك الإلكتروني والنقر على الرابط لتفعيل حسابك", "Please open your email and activate your account")}
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-3">
             <Button asChild variant="outline" className="w-full">
-                <Link href="/login">العودة لتسجيل الدخول</Link>
+                <Link href="/login">{t("العودة لتسجيل الدخول", "Back to sign in")}</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -154,14 +157,14 @@ export default function RegisterPage() {
             </div>
             <span className="text-2xl font-bold text-foreground">UniBookClub</span>
           </Link>
-          <p className="text-muted-foreground">أنشئ حسابك وابدأ ببيع وشراء الكتب</p>
+          <p className="text-muted-foreground">{t("أنشئ حسابك وابدأ ببيع وشراء الكتب", "Create your account and start trading books")}</p>
         </div>
 
         <Card className="shadow-lg">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">إنشاء حساب جديد</CardTitle>
+            <CardTitle className="text-2xl font-bold">{t("إنشاء حساب جديد", "Create New Account")}</CardTitle>
             <CardDescription>
-              أدخل بياناتك لإنشاء حساب في UniBookClub
+              {t("أدخل بياناتك لإنشاء حساب في UniBookClub", "Enter your details to create a UniBookClub account")}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleRegister}>
@@ -174,13 +177,13 @@ export default function RegisterPage() {
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="fullName">الاسم الكامل</Label>
+                <Label htmlFor="fullName">{t("الاسم الكامل", "Full Name")}</Label>
                 <div className="relative">
                   <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="fullName"
                     type="text"
-                    placeholder="أحمد محمد"
+                    placeholder={t("أحمد محمد", "John Doe")}
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     className="pr-10"
@@ -191,7 +194,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Label htmlFor="email">{t("البريد الإلكتروني", "Email")}</Label>
                 <div className="relative">
                   <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -208,7 +211,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">رقم الهاتف (واتساب)</Label>
+                <Label htmlFor="phone">{t("رقم الهاتف (واتساب)", "Phone (WhatsApp)")}</Label>
                 <div className="relative">
                   <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -226,36 +229,36 @@ export default function RegisterPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>الكلية</Label>
+                  <Label>{t("الكلية", "Faculty")}</Label>
                   <Select 
                     value={formData.facultyId} 
                     onValueChange={(v) => setFormData({ ...formData, facultyId: v, majorId: "" })}
                     disabled={loading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="اختر الكلية" />
+                      <SelectValue placeholder={t("اختر الكلية", "Select faculty")} />
                     </SelectTrigger>
                     <SelectContent>
                       {faculties.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>{f.name_ar ?? f.name ?? "-"}</SelectItem>
+                        <SelectItem key={f.id} value={f.id}>{language === "ar" ? (f.name_ar ?? f.name ?? "-") : (f.name ?? f.name_ar ?? "-")}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>التخصص</Label>
+                  <Label>{t("التخصص", "Major")}</Label>
                   <Select 
                     value={formData.majorId} 
                     onValueChange={(v) => setFormData({ ...formData, majorId: v })}
                     disabled={loading || !formData.facultyId}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="اختر التخصص" />
+                      <SelectValue placeholder={t("اختر التخصص", "Select major")} />
                     </SelectTrigger>
                     <SelectContent>
                       {majors.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.name_ar ?? m.name ?? "-"}</SelectItem>
+                        <SelectItem key={m.id} value={m.id}>{language === "ar" ? (m.name_ar ?? m.name ?? "-") : (m.name ?? m.name_ar ?? "-")}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -263,7 +266,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">كلمة المرور</Label>
+                <Label htmlFor="password">{t("كلمة المرور", "Password")}</Label>
                 <div className="relative">
                   <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -280,7 +283,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
+                <Label htmlFor="confirmPassword">{t("تأكيد كلمة المرور", "Confirm Password")}</Label>
                 <div className="relative">
                   <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -301,19 +304,19 @@ export default function RegisterPage() {
                 {loading ? (
                   <>
                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري إنشاء الحساب...
+                    {t("جاري إنشاء الحساب...", "Creating account...")}
                   </>
                 ) : (
                   <>
                     <GraduationCap className="ml-2 h-4 w-4" />
-                    إنشاء الحساب
+                    {t("إنشاء الحساب", "Create Account")}
                   </>
                 )}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
-                لديك حساب بالفعل؟{" "}
+                {t("لديك حساب بالفعل؟", "Already have an account?")}{" "}
                 <Link href="/login" className="font-medium text-primary hover:underline">
-                  تسجيل الدخول
+                  {t("تسجيل الدخول", "Sign In")}
                 </Link>
               </p>
             </CardFooter>

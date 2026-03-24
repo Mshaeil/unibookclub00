@@ -30,6 +30,7 @@ import {
 import { formatDistanceToNow } from "date-fns"
 import { ar } from "date-fns/locale"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage, useTranslate } from "@/components/language-provider"
 
 type Listing = {
   id: string
@@ -64,23 +65,23 @@ type DashboardContentProps = {
   }
 }
 
-const conditionLabels: Record<string, string> = {
-  new: "جديد",
-  like_new: "كالجديد",
-  good: "جيد",
-  acceptable: "مقبول",
-}
-
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle }> = {
-  pending_review: { label: "قيد المراجعة", variant: "secondary", icon: Clock },
-  approved: { label: "نشط", variant: "default", icon: CheckCircle },
-  rejected: { label: "مرفوض", variant: "destructive", icon: XCircle },
-  sold: { label: "مباع", variant: "outline", icon: ShoppingBag },
-}
-
 export function DashboardContent({ profile, listings, stats, showStats = true }: DashboardContentProps) {
+  const { language } = useLanguage()
+  const t = useTranslate()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
+  const conditionLabels: Record<string, string> = {
+    new: t("جديد", "New"),
+    like_new: t("كالجديد", "Like new"),
+    good: t("جيد", "Good"),
+    acceptable: t("مقبول", "Acceptable"),
+  }
+  const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle }> = {
+    pending_review: { label: t("قيد المراجعة", "Pending review"), variant: "secondary", icon: Clock },
+    approved: { label: t("نشط", "Active"), variant: "default", icon: CheckCircle },
+    rejected: { label: t("مرفوض", "Rejected"), variant: "destructive", icon: XCircle },
+    sold: { label: t("مباع", "Sold"), variant: "outline", icon: ShoppingBag },
+  }
 
   async function handleDeleteListing(listingId: string) {
     const ok = window.confirm("هل أنت متأكد من حذف هذا الإعلان؟ لا يمكن التراجع عن هذا الإجراء.")
@@ -123,14 +124,14 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            مرحباً، {profile?.full_name || "المستخدم"}
+            {t("مرحباً،", "Welcome,")} {profile?.full_name || t("المستخدم", "User")}
           </h1>
-          <p className="text-muted-foreground">إدارة إعلاناتك ومتابعة أداء كتبك</p>
+          <p className="text-muted-foreground">{t("إدارة إعلاناتك ومتابعة أداء كتبك", "Manage your listings and track performance")}</p>
         </div>
         <Button asChild className="gap-2">
           <Link href="/dashboard/listings/new">
             <Plus className="h-4 w-4" />
-            أضف كتاباً جديداً
+            {t("أضف كتاباً جديداً", "Add New Book")}
           </Link>
         </Button>
       </div>
@@ -146,7 +147,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.totalListings}</p>
-                  <p className="text-xs text-muted-foreground">إجمالي الإعلانات</p>
+                  <p className="text-xs text-muted-foreground">{t("إجمالي الإعلانات", "Total Listings")}</p>
                 </div>
               </div>
             </CardContent>
@@ -160,7 +161,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.activeListings}</p>
-                  <p className="text-xs text-muted-foreground">إعلانات نشطة</p>
+                  <p className="text-xs text-muted-foreground">{t("إعلانات نشطة", "Active Listings")}</p>
                 </div>
               </div>
             </CardContent>
@@ -174,7 +175,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.pendingListings}</p>
-                  <p className="text-xs text-muted-foreground">قيد المراجعة</p>
+                  <p className="text-xs text-muted-foreground">{t("قيد المراجعة", "Pending Review")}</p>
                 </div>
               </div>
             </CardContent>
@@ -188,7 +189,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.soldListings}</p>
-                  <p className="text-xs text-muted-foreground">تم بيعها</p>
+                  <p className="text-xs text-muted-foreground">{t("تم بيعها", "Sold")}</p>
                 </div>
               </div>
             </CardContent>
@@ -202,7 +203,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.totalViews}</p>
-                  <p className="text-xs text-muted-foreground">إجمالي المشاهدات</p>
+                  <p className="text-xs text-muted-foreground">{t("إجمالي المشاهدات", "Total Views")}</p>
                 </div>
               </div>
             </CardContent>
@@ -216,7 +217,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.totalFavorites}</p>
-                  <p className="text-xs text-muted-foreground">في المفضلة</p>
+                  <p className="text-xs text-muted-foreground">{t("في المفضلة", "In Favorites")}</p>
                 </div>
               </div>
             </CardContent>
@@ -227,19 +228,19 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
       {/* Listings */}
       <Card>
         <CardHeader>
-          <CardTitle>إعلاناتي</CardTitle>
-          <CardDescription>جميع الكتب التي قمت بعرضها للبيع</CardDescription>
+          <CardTitle>{t("إعلاناتي", "My Listings")}</CardTitle>
+          <CardDescription>{t("جميع الكتب التي قمت بعرضها للبيع", "All books you listed for sale")}</CardDescription>
         </CardHeader>
         <CardContent>
           {listings.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">لا يوجد إعلانات بعد</h3>
-              <p className="text-muted-foreground mb-4">ابدأ ببيع كتبك الجامعية الآن</p>
+              <h3 className="text-lg font-medium mb-2">{t("لا يوجد إعلانات بعد", "No listings yet")}</h3>
+              <p className="text-muted-foreground mb-4">{t("ابدأ ببيع كتبك الجامعية الآن", "Start selling your books now")}</p>
               <Button asChild>
                 <Link href="/dashboard/listings/new">
                   <Plus className="ml-2 h-4 w-4" />
-                  أضف كتابك الأول
+                  {t("أضف كتابك الأول", "Add your first book")}
                 </Link>
               </Button>
             </div>
@@ -287,7 +288,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                        <span className="font-semibold text-primary">{listing.price} د.أ</span>
+                        <span className="font-semibold text-primary">{listing.price} {language === "ar" ? "د.أ" : "JOD"}</span>
                         <span>{conditionLabels[listing.condition]}</span>
                         <span className="flex items-center gap-1">
                           <Eye className="h-3 w-3" />
@@ -312,7 +313,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                           onClick={() => handleMarkAsSold(listing.id)}
                         >
                           <ShoppingBag className="h-4 w-4" />
-                          تم البيع
+                          {t("تم البيع", "Mark Sold")}
                         </Button>
                       )}
                       <DropdownMenu>
@@ -325,13 +326,13 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                           <DropdownMenuItem asChild>
                             <Link href={`/book/${listing.id}`}>
                               <ExternalLink className="ml-2 h-4 w-4" />
-                              عرض الإعلان
+                              {t("عرض الإعلان", "View Listing")}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <Link href={`/dashboard/listings/${listing.id}/edit`}>
                               <Edit className="ml-2 h-4 w-4" />
-                              تعديل
+                              {t("تعديل", "Edit")}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
@@ -339,7 +340,7 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                             onClick={() => handleDeleteListing(listing.id)}
                           >
                             <Trash2 className="ml-2 h-4 w-4" />
-                            حذف
+                            {t("حذف", "Delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
