@@ -8,13 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
-import { CheckCircle, ExternalLink, ShieldAlert, Trash2, XCircle } from "lucide-react"
+import { CheckCircle, ExternalLink, MessageCircle, ShieldAlert, Trash2, XCircle } from "lucide-react"
 
 type Listing = {
   id: string
@@ -34,6 +33,7 @@ type User = {
   full_name: string | null
   phone: string | null
   whatsapp: string | null
+  email: string | null
   role: "user" | "admin"
   created_at: string
   is_active: boolean
@@ -45,8 +45,9 @@ type Report = {
   details: string | null
   status: "pending" | "reviewed" | "resolved" | "dismissed"
   created_at: string
-  listing: { id: string; title: string } | null
+  listing: { id: string; title: string; seller_id?: string } | null
   reporter: { id: string; full_name: string | null } | null
+  listingSeller: { id: string; full_name: string | null; phone: string | null; whatsapp: string | null } | null
 }
 
 type Faculty = {
@@ -138,6 +139,7 @@ export function AdminDashboard({
   const [majors, setMajors] = useState<Major[]>(initialMajors)
   const [courses, setCourses] = useState<Course[]>(initialCourses)
   const [listingFilter, setListingFilter] = useState<"all" | "pending_review" | "approved" | "rejected">("all")
+  const [userSearch, setUserSearch] = useState("")
   const [error, setError] = useState<string | null>(null)
 
   const [newFacultyName, setNewFacultyName] = useState("")
@@ -148,6 +150,23 @@ export function AdminDashboard({
 
   const filteredListings =
     listingFilter === "all" ? listings : listings.filter((l) => l.status === listingFilter)
+
+  const q = userSearch.trim().toLowerCase()
+  const filteredUsers = q
+    ? users.filter((u) => {
+        const hay = [
+          u.full_name,
+          u.email,
+          u.phone,
+          u.whatsapp,
+          u.id,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+        return hay.includes(q)
+      })
+    : users
 
   async function updateListingStatus(id: string, status: "approved" | "rejected") {
     setError(null)
@@ -189,29 +208,7 @@ export function AdminDashboard({
   }
 
   async function markReportResolved(reportId: string) {
-    setError(null)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    const { error: updateError } = await supabase
-      .from("reports")
-      .update({
-        status: "resolved",
-        resolved_by: user?.id ?? null,
-        resolved_at: new Date().toISOString(),
-      })
-      .eq("id", reportId)
-
-    if (updateError) {
-      setError("فشل تحديث حالة البلاغ")
-      return
-    }
-
-    setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, status: "resolved" } : r))
-    )
-    router.refresh()
+    await updateReportStatus(reportId, "resolved")
   }
 
   async function updateReportStatus(reportId: string, status: Report["status"]) {
@@ -220,17 +217,46 @@ export function AdminDashboard({
       data: { user },
     } = await supabase.auth.getUser()
 
-    const { error: updateError } = await supabase
-      .from("reports")
-      .update({
-        status,
-        resolved_by: status === "resolved" ? user?.id ?? null : null,
-        resolved_at: status === "resolved" ? new Date().toISOString() : null,
-      })
-      .eq("id", reportId)
+    const runUpdate = async (patch: Record<string, unknown>) =>
+      supabase.from("reports").update(patch).eq("id", reportId).select("id")
 
-    if (updateError) {
-      setError(`فشل تحديث حالة البلاغ: ${updateError.message}`)
+    let patch: Record<string, unknown> = { status }
+    if (status === "resolved") {
+      patch = {
+        status,
+        resolved_at: new Date().toISOString(),
+        ...(user?.id ? { resolved_by: user.id } : {}),
+      }
+    }
+
+    let { data, error: updateError } = await runUpdate(patch)
+
+    if (status === "resolved" && (updateError || !data?.length)) {
+      const retry = await runUpdate({
+        status: "resolved",
+        resolved_at: new Date().toISOString(),
+      })
+      if (!retry.error && retry.data?.length) {
+        data = retry.data
+        updateError = null
+      } else if (!retry.error && !retry.data?.length) {
+        const minimal = await runUpdate({ status: "resolved" })
+        if (!minimal.error && minimal.data?.length) {
+          data = minimal.data
+          updateError = null
+        } else {
+          updateError = minimal.error ?? retry.error ?? updateError
+        }
+      } else {
+        updateError = retry.error ?? updateError
+      }
+    }
+
+    if (updateError || !data?.length) {
+      setError(
+        updateError?.message ??
+          "لم يتم تحديث البلاغ (0 صفوف). طبّق سياسة reports_admin_update من scripts/009_listing_discount_profile_email_rls_fixes.sql أو تحقق من صلاحية المدير.",
+      )
       return
     }
 
@@ -541,13 +567,26 @@ export function AdminDashboard({
           <Card>
             <CardHeader>
               <CardTitle>إدارة المستخدمين</CardTitle>
-              <CardDescription>عرض معلومات المستخدمين الأساسية</CardDescription>
+              <CardDescription>
+                سجل كامل للمستخدمين مع البريد. استخدم البحث بالاسم، البريد، الهاتف، أو المعرف.
+              </CardDescription>
+              <div className="max-w-md pt-2">
+                <Label htmlFor="admin-user-search">بحث</Label>
+                <Input
+                  id="admin-user-search"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="ابحث عن مستخدم…"
+                  className="mt-1"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>الاسم</TableHead>
+                    <TableHead>البريد</TableHead>
                     <TableHead>الدور</TableHead>
                     <TableHead>الهاتف</TableHead>
                     <TableHead>واتساب</TableHead>
@@ -557,9 +596,10 @@ export function AdminDashboard({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>{user.full_name || "مستخدم"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate text-sm">{user.email || "—"}</TableCell>
                       <TableCell>
                         <Badge variant={user.role === "admin" ? "default" : "outline"}>
                           {user.role === "admin" ? "مدير" : "مستخدم"}
@@ -602,6 +642,7 @@ export function AdminDashboard({
                   <TableRow>
                     <TableHead>المبلغ</TableHead>
                     <TableHead>الإعلان</TableHead>
+                    <TableHead>صاحب الإعلان</TableHead>
                     <TableHead>السبب</TableHead>
                     <TableHead>التفاصيل</TableHead>
                     <TableHead>الحالة</TableHead>
@@ -613,6 +654,38 @@ export function AdminDashboard({
                     <TableRow key={report.id}>
                       <TableCell>{report.reporter?.full_name || "-"}</TableCell>
                       <TableCell>{report.listing?.title || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 text-sm">
+                          <span>{report.listingSeller?.full_name || "—"}</span>
+                          <div className="flex flex-wrap gap-1">
+                            {report.listing?.id && (
+                              <Button size="sm" variant="outline" className="h-7 gap-1 px-2" asChild>
+                                <Link href={`/book/${report.listing.id}`}>
+                                  <ExternalLink className="h-3 w-3" />
+                                  الإعلان
+                                </Link>
+                              </Button>
+                            )}
+                            {(report.listingSeller?.whatsapp || report.listingSeller?.phone) && (
+                              <Button size="sm" variant="outline" className="h-7 gap-1 px-2" asChild>
+                                <a
+                                  href={`https://wa.me/${(report.listingSeller?.whatsapp || report.listingSeller?.phone || "").replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <MessageCircle className="h-3 w-3" />
+                                  تواصل
+                                </a>
+                              </Button>
+                            )}
+                            {report.listingSeller?.id && (
+                              <span className="text-[10px] text-muted-foreground font-mono self-center px-1">
+                                {report.listingSeller.id.slice(0, 8)}…
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell>{reportReasonLabel[report.reason] ?? report.reason}</TableCell>
                       <TableCell className="max-w-[240px] truncate">{report.details || "-"}</TableCell>
                       <TableCell>
@@ -621,15 +694,7 @@ export function AdminDashboard({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
-                          {report.listing?.id && (
-                            <Button size="sm" variant="ghost" className="gap-1" asChild>
-                              <Link href={`/book/${report.listing.id}`}>
-                                <ExternalLink className="h-4 w-4" />
-                                عرض الإعلان
-                              </Link>
-                            </Button>
-                          )}
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             size="sm"
                             variant="outline"

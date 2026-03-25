@@ -23,7 +23,9 @@ export default async function HomePage() {
     supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "sold"),
     supabase
       .from("listings")
-      .select("id, title, price, condition, availability, images, course:courses(name_ar, name_en)")
+      .select(
+        "id, title, price, original_price, discount_expires_at, condition, availability, images, course:courses(name_ar, name_en)",
+      )
       .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(12),
@@ -33,6 +35,8 @@ export default async function HomePage() {
     id: string
     title: string
     price: number
+    original_price?: number | null
+    discount_expires_at?: string | null
     condition: string
     availability: string
     images: string[]

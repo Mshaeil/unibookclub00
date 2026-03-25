@@ -11,13 +11,19 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined)
 
+function readStoredLanguage(): Language {
+  if (typeof window === "undefined") return "ar"
+  const v = localStorage.getItem("site_lang")
+  return v === "en" ? "en" : "ar"
+}
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("ar")
 
   useEffect(() => {
-    // Keep Arabic as the hard default on load.
-    setLanguageState("ar")
-    document.documentElement.lang = "ar"
+    const initial = readStoredLanguage()
+    setLanguageState(initial)
+    document.documentElement.lang = initial
     document.documentElement.dir = "rtl"
   }, [])
 
@@ -25,7 +31,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLanguageState(lang)
     localStorage.setItem("site_lang", lang)
     document.documentElement.lang = lang
-    // Keep layout direction fixed as requested.
     document.documentElement.dir = "rtl"
   }
 

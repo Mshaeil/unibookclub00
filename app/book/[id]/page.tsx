@@ -3,6 +3,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { createClient } from "@/lib/supabase/server"
 import { BookDetails } from "@/components/book-details"
+import { phoneDigitsMatchLast10, sanitizePhoneDigits } from "@/lib/utils/phone"
 
 export const dynamic = "force-dynamic"
 
@@ -20,7 +21,7 @@ export default async function BookPage({ params }: BookPageProps) {
     : { data: null }
   const isAdmin = profile?.role === "admin"
 
-  let query = supabase
+  const query = supabase
     .from("listings")
     .select(`
       *,
@@ -35,9 +36,7 @@ export default async function BookPage({ params }: BookPageProps) {
     `)
     .eq("id", id)
 
-  if (!isAdmin) {
-    query = query.eq("status", "approved")
-  }
+  /* RLS (listings_read_approved) limits rows: guests see approved only; sellers/buyers/admins see more */
   const { data: listing, error: listingError } = await query.single()
 
   if (!listing) {
@@ -54,7 +53,9 @@ export default async function BookPage({ params }: BookPageProps) {
 
   const relatedQuery = supabase
     .from("listings")
-    .select("id, title, price, condition, images, availability, course:courses(name_ar, name_en)")
+    .select(
+      "id, title, price, original_price, discount_expires_at, condition, images, availability, course:courses(code, name_ar, name_en)",
+    )
     .eq("status", "approved")
     .neq("id", listing.id)
     .limit(4)
@@ -64,10 +65,47 @@ export default async function BookPage({ params }: BookPageProps) {
     ? await relatedQuery.eq("course_id", listing.course_id)
     : await relatedQuery
 
+  let canRateSeller = false
+  if (user && listing.status === "sold") {
+    const [{ data: saleRows }, { data: buyerProfile }] = await Promise.all([
+      supabase
+        .from("sales")
+        .select("buyer_id, buyer_email, buyer_phone")
+        .eq("listing_id", listing.id),
+      supabase.from("profiles").select("phone, whatsapp").eq("id", user.id).maybeSingle(),
+    ])
+    const email = user.email?.toLowerCase().trim()
+    const phone = buyerProfile?.phone ?? ""
+    const whatsapp = buyerProfile?.whatsapp ?? ""
+    const p10 = sanitizePhoneDigits(phone, 10)
+    const w10 = sanitizePhoneDigits(whatsapp, 10)
+    canRateSeller = Boolean(
+      saleRows?.some(
+        (s: { buyer_id: string | null; buyer_email: string | null; buyer_phone: string }) => {
+          if (s.buyer_id === user.id) return true
+          if (
+            email &&
+            s.buyer_email &&
+            s.buyer_email.toLowerCase().trim() === email
+          )
+            return true
+          const bp10 = sanitizePhoneDigits(s.buyer_phone ?? "", 10)
+          if (bp10.length === 10 && (bp10 === p10 || bp10 === w10)) return true
+          return (
+            phoneDigitsMatchLast10(s.buyer_phone ?? "", phone) ||
+            phoneDigitsMatchLast10(s.buyer_phone ?? "", whatsapp)
+          )
+        },
+      ),
+    )
+  }
+
   const normalizedRelatedListings = (relatedListings || []).map((item: {
     id: string
     title: string
     price: number
+    original_price?: number | null
+    discount_expires_at?: string | null
     condition: "new" | "like_new" | "good" | "acceptable"
     availability: "available" | "reserved" | "sold"
     images: string[]
@@ -81,7 +119,15 @@ export default async function BookPage({ params }: BookPageProps) {
     <div className="min-h-screen bg-background">
       <Header />
       <main>
-        <BookDetails listing={listing} relatedListings={normalizedRelatedListings} />
+        <BookDetails
+          listing={listing}
+          relatedListings={normalizedRelatedListings}
+          viewer={{
+            userId: user?.id ?? null,
+            isSeller: Boolean(user && listing.seller_id === user.id),
+            canRateSeller,
+          }}
+        />
       </main>
       <Footer />
     </div>

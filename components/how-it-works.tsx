@@ -85,7 +85,11 @@ export function HowItWorks() {
                     <Handshake className="h-4 w-4 text-primary" />
                     <span className="font-medium text-foreground">{language === "ar" ? "بع لطلاب الجامعة" : "Sell to university students"}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{language === "ar" ? "تواصل مع المشترين وأتمم الصفقة" : "Contact buyers and complete the deal"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "ar"
+                      ? "بعد البيع من لوحة التحكم سجّل بيانات المشتري كما في حسابه. يمكنك إظهار سعر قبل وبعد الخصم في الإعلان."
+                      : "After the sale, record the buyer from your dashboard as on their profile. You can show original and discounted prices on the listing."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -147,9 +151,15 @@ export function HowItWorks() {
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
                     <Handshake className="h-4 w-4 text-secondary" />
-                    <span className="font-medium text-foreground">استلم الكتاب</span>
+                    <span className="font-medium text-foreground">
+                      {language === "ar" ? "استلم وقيّم وحمّل PDF" : "Receive, rate, download PDF"}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">داخل الجامعة أو حسب الاتفاق</p>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "ar"
+                      ? "تظهر مشترياتك عندما يطابق رقمك ما سجّله البائع. بعد تقييم البائع يمكنك تحميل أي ملف PDF مرفق بالإعلان من «مشترياتك»."
+                      : "Purchases appear when your profile phone matches what the seller entered. After you rate the seller, you can download any PDF from «Your purchases»."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -175,6 +185,14 @@ export function HowItWorks() {
             <li className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
               الدفع يتم مباشرة بين البائع والمشتري
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              أرقام التواصل تُنسَّق تلقائياً داخل المنصة لمطابقة المشتريات مع البائع
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              تحميل الملفات PDF للمشتري بعد إتمام البيع والتقييم فقط
             </li>
           </ul>
         </div>

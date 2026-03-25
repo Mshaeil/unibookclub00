@@ -39,7 +39,7 @@ const [
   .order("created_at", { ascending: false }),
   supabase
     .from("profiles")
-    .select("id, full_name, phone, whatsapp, role, created_at")
+    .select("id, full_name, phone, whatsapp, role, created_at, is_active, email")
     .order("created_at", { ascending: false }),
   supabase
     .from("reports")
@@ -109,9 +109,12 @@ const users = (usersResult.data || []).map((u: {
   whatsapp: string | null
   role: "user" | "admin"
   created_at: string
+  is_active?: boolean | null
+  email?: string | null
 }) => ({
   ...u,
-  is_active: true,
+  is_active: u.is_active !== false,
+  email: u.email ?? null,
 }))
 const rawReports = (reportsResult.data || []) as {
   id: string
@@ -182,34 +185,54 @@ const allListingIds = Array.from(new Set([
   ...reviewListingIds,
 ]))
 
-const [allListingsHydrationResult, allUsersHydrationResult] = await Promise.all([
-  allListingIds.length
-    ? supabase.from("listings").select("id, title").in("id", allListingIds)
-    : Promise.resolve({ data: [], error: null }),
-  allProfileIds.length
-    ? supabase.from("profiles").select("id, full_name").in("id", allProfileIds)
-    : Promise.resolve({ data: [], error: null }),
-])
+const allListingsHydrationResult = allListingIds.length
+  ? await supabase.from("listings").select("id, title, seller_id").in("id", allListingIds)
+  : { data: [], error: null as null }
 
 if (allListingsHydrationResult.error) {
   console.error("Admin listings hydration query error:", allListingsHydrationResult.error)
 }
+
+const listingRows = (allListingsHydrationResult.data || []) as {
+  id: string
+  title: string
+  seller_id: string
+}[]
+const sellerIdsFromListings = listingRows.map((l) => l.seller_id).filter(Boolean)
+const mergedProfileIds = Array.from(new Set([...allProfileIds, ...sellerIdsFromListings]))
+
+const allUsersHydrationResult = mergedProfileIds.length
+  ? await supabase.from("profiles").select("id, full_name, phone, whatsapp").in("id", mergedProfileIds)
+  : { data: [], error: null as null }
+
 if (allUsersHydrationResult.error) {
   console.error("Admin users hydration query error:", allUsersHydrationResult.error)
 }
 
-const listingById = new Map((allListingsHydrationResult.data || []).map((l: { id: string; title: string }) => [l.id, l]))
-const userById = new Map((allUsersHydrationResult.data || []).map((u: { id: string; full_name: string | null }) => [u.id, u]))
+const listingById = new Map(listingRows.map((l) => [l.id, l]))
+const userById = new Map(
+  (allUsersHydrationResult.data || []).map((u: { id: string; full_name: string | null; phone: string | null; whatsapp: string | null }) => [
+    u.id,
+    u,
+  ]),
+)
 
-const reports = rawReports.map((r) => ({
-  id: r.id,
-  reason: r.reason,
-  details: r.details,
-  status: r.status,
-  created_at: r.created_at,
-  listing: listingById.get(r.listing_id) || null,
-  reporter: userById.get((r.reporter_id || r.user_id) as string) || null,
-}))
+const reports = rawReports.map((r) => {
+  const listingRow = listingById.get(r.listing_id)
+  const sellerId = listingRow?.seller_id
+  return {
+    id: r.id,
+    reason: r.reason,
+    details: r.details,
+    status: r.status,
+    created_at: r.created_at,
+    listing: listingRow
+      ? { id: listingRow.id, title: listingRow.title, seller_id: listingRow.seller_id }
+      : null,
+    reporter: userById.get((r.reporter_id || r.user_id) as string) || null,
+    listingSeller: sellerId ? userById.get(sellerId) || null : null,
+  }
+})
 const sales = rawSales.map((s) => ({
   id: s.id,
   buyer_name: s.buyer_name,

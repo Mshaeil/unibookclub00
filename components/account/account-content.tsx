@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, LogOut, Loader2, User, Edit } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { isValidTenDigitPhone, sanitizePhoneDigits, toTenDigitPhone } from "@/lib/utils/phone"
 
 type Faculty = { id: string; name_ar?: string; name?: string }
 type Major = { id: string; faculty_id: string; name_ar?: string; name?: string }
@@ -53,19 +54,6 @@ const availabilityLabels: Record<string, string> = {
 }
 
 const NONE_VALUE = "__none__"
-const phoneRegex = /^(?:07\d{8}|\+9627\d{8})$/
-
-function normalizePhoneInput(value: string) {
-  const normalized = value
-    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
-    .replace(/[^\d+]/g, "")
-
-  if (normalized.startsWith("+")) {
-    return `+${normalized.slice(1).replace(/\+/g, "")}`
-  }
-
-  return normalized.replace(/\+/g, "")
-}
 
 function mapSupabaseProfileError(message: string) {
   const lower = message.toLowerCase()
@@ -101,8 +89,8 @@ export function AccountContent({
   const [error, setError] = useState<string | null>(null)
 
   const [fullName, setFullName] = useState(profile?.full_name ?? "")
-  const [phone, setPhone] = useState(profile?.phone ?? "")
-  const [whatsapp, setWhatsapp] = useState(profile?.whatsapp ?? "")
+  const [phone, setPhone] = useState(toTenDigitPhone(profile?.phone))
+  const [whatsapp, setWhatsapp] = useState(toTenDigitPhone(profile?.whatsapp))
   const [facultyId, setFacultyId] = useState(profile?.faculty_id ?? "")
   const [majorId, setMajorId] = useState(profile?.major_id ?? "")
 
@@ -114,8 +102,8 @@ export function AccountContent({
     setSaving(true)
 
     const trimmedName = fullName.trim()
-    const trimmedPhone = phone.trim()
-    const trimmedWhatsapp = whatsapp.trim()
+    const trimmedPhone = sanitizePhoneDigits(phone, 10)
+    const trimmedWhatsapp = sanitizePhoneDigits(whatsapp, 10)
 
     if (!trimmedName) {
       setError("الاسم الكامل مطلوب")
@@ -123,14 +111,14 @@ export function AccountContent({
       return
     }
 
-    if (trimmedPhone && !phoneRegex.test(trimmedPhone)) {
-      setError("رقم الهاتف غير صالح. استخدم 07XXXXXXXX أو +9627XXXXXXXX")
+    if (trimmedPhone && !isValidTenDigitPhone(trimmedPhone)) {
+      setError("رقم الهاتف غير صالح")
       setSaving(false)
       return
     }
 
-    if (trimmedWhatsapp && !phoneRegex.test(trimmedWhatsapp)) {
-      setError("رقم واتساب غير صالح. استخدم 07XXXXXXXX أو +9627XXXXXXXX")
+    if (trimmedWhatsapp && !isValidTenDigitPhone(trimmedWhatsapp)) {
+      setError("رقم التواصل غير صالح")
       setSaving(false)
       return
     }
@@ -254,13 +242,12 @@ export function AccountContent({
                     id="phone"
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(normalizePhoneInput(e.target.value))}
-                    placeholder="07XXXXXXXX"
+                    onChange={(e) => setPhone(sanitizePhoneDigits(e.target.value, 10))}
+                    placeholder="0791234567"
                     dir="ltr"
                     inputMode="numeric"
-                    maxLength={13}
+                    maxLength={10}
                   />
-                  <p className="text-xs text-muted-foreground">مثال: 0791234567 أو +962791234567</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="whatsapp">واتساب</Label>
@@ -268,13 +255,12 @@ export function AccountContent({
                     id="whatsapp"
                     type="tel"
                     value={whatsapp}
-                    onChange={(e) => setWhatsapp(normalizePhoneInput(e.target.value))}
-                    placeholder="07XXXXXXXX"
+                    onChange={(e) => setWhatsapp(sanitizePhoneDigits(e.target.value, 10))}
+                    placeholder="0791234567"
                     dir="ltr"
                     inputMode="numeric"
-                    maxLength={13}
+                    maxLength={10}
                   />
-                  <p className="text-xs text-muted-foreground">مثال: 0791234567 أو +962791234567</p>
                 </div>
                 <div className="space-y-2">
                   <Label>الكلية</Label>

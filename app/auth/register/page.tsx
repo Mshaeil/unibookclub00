@@ -2,15 +2,18 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { getOAuthCallbackUrl } from "@/lib/auth/oauth-redirect"
 import { createClient } from "@/lib/supabase/client"
+import { isValidTenDigitPhone, sanitizePhoneDigits } from "@/lib/utils/phone"
+import { isPasswordStrongEnough, PASSWORD_MIN_LENGTH } from "@/lib/utils/generate-password"
+import { PasswordField } from "@/components/auth/password-field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BookOpen, Loader2, Mail, Lock, User, Phone, GraduationCap, AlertCircle } from "lucide-react"
+import { BookOpen, Loader2, Mail, User, Phone, GraduationCap, AlertCircle } from "lucide-react"
 import { useLanguage, useTranslate } from "@/components/language-provider"
 
 type Faculty = {
@@ -29,7 +32,6 @@ type Major = {
 export default function RegisterPage() {
   const { language } = useLanguage()
   const t = useTranslate()
-  const router = useRouter()
   const supabase = createClient()
   
   const [formData, setFormData] = useState({
@@ -74,6 +76,32 @@ export default function RegisterPage() {
     fetchMajors()
   }, [formData.facultyId, supabase])
 
+  function mapAuthError(message: string) {
+    const lower = message.toLowerCase()
+    if (lower.includes("unsupported provider") || lower.includes("provider is not enabled")) {
+      return t(
+        "تسجيل الدخول عبر Google غير مفعّل في Supabase (Authentication → Providers → Google).",
+        "Google sign-in is not enabled in Supabase (Authentication → Providers → Google).",
+      )
+    }
+    return message || t("حدث خطأ", "Something went wrong")
+  }
+
+  async function handleGoogleRegister() {
+    setError(null)
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: getOAuthCallbackUrl("/dashboard"),
+      },
+    })
+    if (error) {
+      setError(mapAuthError(error.message))
+      setLoading(false)
+    }
+  }
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -86,8 +114,33 @@ export default function RegisterPage() {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError(t("كلمة المرور يجب أن تكون 6 أحرف على الأقل", "Password must be at least 6 characters"))
+    if (formData.password.length < PASSWORD_MIN_LENGTH) {
+      setError(
+        t(
+          `كلمة المرور يجب أن تكون ${PASSWORD_MIN_LENGTH} أحرف على الأقل`,
+          `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+        ),
+      )
+      setLoading(false)
+      return
+    }
+
+    if (!isPasswordStrongEnough(formData.password)) {
+      setError(
+        t(
+          "استخدم كلمة مرور قوية: حرف كبير وصغير ورقم ورمز (أو اضغط «توليد كلمة مرور قوية»).",
+          "Use a strong password: upper & lower case, a number, and a symbol (or tap «Generate strong password»).",
+        ),
+      )
+      setLoading(false)
+      return
+    }
+
+    const phoneDigits = sanitizePhoneDigits(formData.phone, 10)
+    if (!isValidTenDigitPhone(phoneDigits)) {
+      setError(
+        t("رقم التواصل غير صالح", "Invalid contact number"),
+      )
       setLoading(false)
       return
     }
@@ -100,7 +153,7 @@ export default function RegisterPage() {
           `${window.location.origin}/dashboard`,
         data: {
           full_name: formData.fullName,
-          phone: formData.phone,
+          phone: phoneDigits,
           faculty_id: formData.facultyId || null,
           major_id: formData.majorId || null,
         },
@@ -211,15 +264,21 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">{t("رقم الهاتف (واتساب)", "Phone (WhatsApp)")}</Label>
+                <Label htmlFor="phone">{t("رقم التواصل", "Contact number")}</Label>
                 <div className="relative">
                   <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="07XXXXXXXX"
+                    inputMode="numeric"
+                    maxLength={10}
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        phone: sanitizePhoneDigits(e.target.value, 10),
+                      })
+                    }
                     className="pr-10"
                     required
                     disabled={loading}
@@ -265,41 +324,47 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">{t("كلمة المرور", "Password")}</Label>
-                <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="pr-10"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
+              <PasswordField
+                id="password"
+                label={t("كلمة المرور", "Password")}
+                value={formData.password}
+                onChange={(v) => setFormData({ ...formData, password: v })}
+                disabled={loading}
+                showGenerate
+                generateLabel={t("توليد كلمة مرور قوية", "Generate strong password")}
+                showPasswordAria={t("إظهار كلمة المرور", "Show password")}
+                hidePasswordAria={t("إخفاء كلمة المرور", "Hide password")}
+                autoComplete="new-password"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  `${PASSWORD_MIN_LENGTH}+ أحرف، وحرف كبير وصغير ورقم ورمز.`,
+                  `${PASSWORD_MIN_LENGTH}+ characters with upper, lower, number, and symbol.`,
+                )}
+              </p>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">{t("تأكيد كلمة المرور", "Confirm Password")}</Label>
-                <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="pr-10"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
+              <PasswordField
+                id="confirmPassword"
+                label={t("تأكيد كلمة المرور", "Confirm Password")}
+                value={formData.confirmPassword}
+                onChange={(v) => setFormData({ ...formData, confirmPassword: v })}
+                disabled={loading}
+                showGenerate={false}
+                showPasswordAria={t("إظهار كلمة المرور", "Show password")}
+                hidePasswordAria={t("إخفاء كلمة المرور", "Hide password")}
+                autoComplete="new-password"
+              />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={loading}
+                onClick={handleGoogleRegister}
+              >
+                {t("المتابعة مع Google", "Continue with Google")}
+              </Button>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>

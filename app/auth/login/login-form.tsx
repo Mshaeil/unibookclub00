@@ -1,16 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { getOAuthCallbackUrl } from "@/lib/auth/oauth-redirect"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { BookOpen, Loader2, Mail, Lock, AlertCircle } from "lucide-react"
+import { BookOpen, Loader2, Mail, AlertCircle } from "lucide-react"
 import { useTranslate } from "@/components/language-provider"
+import { PasswordField } from "@/components/auth/password-field"
 
 export default function LoginForm() {
   const t = useTranslate()
@@ -22,6 +24,18 @@ export default function LoginForm() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const oauthErr = searchParams.get("error")
+    if (oauthErr === "oauth") {
+      setError(
+        t(
+          "تعذر إكمال تسجيل الدخول عبر Google. تأكد من إضافة رابط /auth/callback في لوحة Supabase (Authentication → URL Configuration → Redirect URLs).",
+          "Could not complete Google sign-in. Add your site URL + /auth/callback under Supabase Authentication → URL Configuration → Redirect URLs.",
+        ),
+      )
+    }
+  }, [searchParams, t])
 
   function mapAuthError(message: string) {
     const lower = message.toLowerCase()
@@ -62,7 +76,7 @@ export default function LoginForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}${redirect}`,
+        redirectTo: getOAuthCallbackUrl(redirect),
       },
     })
 
@@ -119,28 +133,23 @@ export default function LoginForm() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">{t("كلمة المرور", "Password")}</Label>
-                  <Link 
-                    href="/forgot-password" 
-                    className="text-sm text-primary hover:underline"
-                  >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">{t("كلمة المرور", "Password")}</span>
+                  <Link href="/forgot-password" className="text-sm text-primary hover:underline shrink-0">
                     {t("نسيت كلمة المرور؟", "Forgot password?")}
                   </Link>
                 </div>
-                <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10"
-                    required
-                    disabled={loading}
-                  />
-                </div>
+                <PasswordField
+                  id="login-password"
+                  label=""
+                  value={password}
+                  onChange={setPassword}
+                  disabled={loading}
+                  showGenerate={false}
+                  showPasswordAria={t("إظهار كلمة المرور", "Show password")}
+                  hidePasswordAria={t("إخفاء كلمة المرور", "Hide password")}
+                  autoComplete="current-password"
+                />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">

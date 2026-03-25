@@ -4,15 +4,20 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { PasswordField } from "@/components/auth/password-field"
+import { useTranslate } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { BookOpen, Loader2, Lock, AlertCircle, CheckCircle } from "lucide-react"
+import { BookOpen, Loader2, AlertCircle, CheckCircle } from "lucide-react"
+import {
+  isPasswordStrongEnough,
+  PASSWORD_MIN_LENGTH,
+} from "@/lib/utils/generate-password"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const t = useTranslate()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -25,13 +30,31 @@ export default function ResetPasswordPage() {
     setLoading(true)
 
     if (password !== confirmPassword) {
-      setError("كلمتا المرور غير متطابقتين")
+      setError(
+        t("كلمتا المرور غير متطابقتين", "Passwords do not match"),
+      )
       setLoading(false)
       return
     }
 
-    if (password.length < 6) {
-      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setError(
+        t(
+          `كلمة المرور يجب أن تكون ${PASSWORD_MIN_LENGTH} أحرف على الأقل`,
+          `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+        ),
+      )
+      setLoading(false)
+      return
+    }
+
+    if (!isPasswordStrongEnough(password)) {
+      setError(
+        t(
+          "استخدم أحرفاً كبيرة وصغيرة ورقماً ورمزاً خاصاً (مثل !@#)",
+          "Use upper and lower case letters, a number, and a symbol (e.g. !@#)",
+        ),
+      )
       setLoading(false)
       return
     }
@@ -47,7 +70,7 @@ export default function ResetPasswordPage() {
 
     setSuccess(true)
     setLoading(false)
-    
+
     setTimeout(() => {
       router.push("/dashboard")
     }, 2000)
@@ -61,9 +84,14 @@ export default function ResetPasswordPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl">تم تغيير كلمة المرور</CardTitle>
+            <CardTitle className="text-2xl">
+              {t("تم تغيير كلمة المرور", "Password updated")}
+            </CardTitle>
             <CardDescription className="text-base">
-              تم تحديث كلمة المرور بنجاح. جاري تحويلك للوحة التحكم...
+              {t(
+                "تم تحديث كلمة المرور بنجاح. جاري تحويلك للوحة التحكم...",
+                "Your password was updated. Redirecting to your dashboard...",
+              )}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -74,7 +102,6 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 mb-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
@@ -86,9 +113,11 @@ export default function ResetPasswordPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">إعادة تعيين كلمة المرور</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              {t("إعادة تعيين كلمة المرور", "Reset password")}
+            </CardTitle>
             <CardDescription>
-              أدخل كلمة المرور الجديدة لحسابك
+              {t("أدخل كلمة المرور الجديدة لحسابك", "Enter your new account password")}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -99,50 +128,46 @@ export default function ResetPasswordPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">كلمة المرور الجديدة</Label>
-                <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
-                <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pr-10"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
+              <PasswordField
+                id="password"
+                label={t("كلمة المرور الجديدة", "New password")}
+                value={password}
+                onChange={setPassword}
+                disabled={loading}
+                showGenerate
+                generateLabel={t("إنشاء كلمة مرور قوية", "Generate strong password")}
+                showPasswordAria={t("إظهار كلمة المرور", "Show password")}
+                hidePasswordAria={t("إخفاء كلمة المرور", "Hide password")}
+                autoComplete="new-password"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  `${PASSWORD_MIN_LENGTH}+ أحرف مع حرف كبير وصغير ورقم ورمز`,
+                  `${PASSWORD_MIN_LENGTH}+ chars with upper, lower, number, and symbol`,
+                )}
+              </p>
+
+              <PasswordField
+                id="confirmPassword"
+                label={t("تأكيد كلمة المرور", "Confirm password")}
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                disabled={loading}
+                showPasswordAria={t("إظهار كلمة المرور", "Show password")}
+                hidePasswordAria={t("إخفاء كلمة المرور", "Hide password")}
+                autoComplete="new-password"
+              />
             </CardContent>
             <CardFooter>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري الحفظ...
+                    {t("جاري الحفظ...", "Saving...")}
                   </>
                 ) : (
-                  "حفظ كلمة المرور الجديدة"
+                  t("حفظ كلمة المرور الجديدة", "Save new password")
                 )}
               </Button>
             </CardFooter>

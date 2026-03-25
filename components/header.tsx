@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useTheme } from "next-themes"
-import { useLanguage } from "@/components/language-provider"
+import { useLanguage, useTranslate } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
 import { 
   DropdownMenu, 
@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { BookOpen, Menu, Plus, User, X, LogOut, LayoutDashboard, Heart, Settings, Shield, Sun, Moon } from "lucide-react"
+import { BookOpen, Menu, Plus, User, X, LogOut, LayoutDashboard, Heart, Settings, Shield, Sun, Moon, ShoppingBag } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 type Profile = {
@@ -28,6 +28,7 @@ export function Header() {
   const supabase = createClient()
   const { resolvedTheme, setTheme } = useTheme()
   const { language, setLanguage } = useLanguage()
+  const t = useTranslate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -87,23 +88,25 @@ export function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-bold text-foreground">UniBookClub</span>
-              <span className="text-xs text-muted-foreground">جامعة العلوم التطبيقية</span>
+              <span className="text-xs text-muted-foreground">
+                {t("جامعة العلوم التطبيقية", "Applied Science University")}
+              </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              الرئيسية
+              {t("الرئيسية", "Home")}
             </Link>
             <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              تصفح الكتب
+              {t("تصفح الكتب", "Browse books")}
             </Link>
             <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              الكليات
+              {t("الكليات", "Faculties")}
             </Link>
             <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              كيف يعمل
+              {t("كيف يعمل", "How it works")}
             </Link>
           </nav>
 
@@ -127,7 +130,7 @@ export function Header() {
               variant="ghost"
               size="icon"
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              aria-label="تبديل الوضع الداكن والفاتح"
+              aria-label={t("تبديل الوضع الداكن والفاتح", "Toggle light and dark mode")}
             >
               {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
@@ -138,7 +141,7 @@ export function Header() {
                 <Button asChild size="sm" className="gap-2">
                   <Link href="/dashboard/listings/new">
                     <Plus className="h-4 w-4" />
-                    أضف كتابك
+                    {t("أضف كتابك", "List your book")}
                   </Link>
                 </Button>
                 <DropdownMenu>
@@ -159,7 +162,9 @@ export function Header() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
-                        <p className="text-sm font-medium">{profile?.full_name || "المستخدم"}</p>
+                        <p className="text-sm font-medium">
+                          {profile?.full_name || t("المستخدم", "User")}
+                        </p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
                       </div>
                     </div>
@@ -167,19 +172,25 @@ export function Header() {
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard" className="cursor-pointer">
                         <LayoutDashboard className="ml-2 h-4 w-4" />
-                        لوحة التحكم
+                        {t("لوحة التحكم", "Dashboard")}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/purchases" className="cursor-pointer">
+                        <ShoppingBag className="ml-2 h-4 w-4" />
+                        {t("مشترياتك", "Your purchases")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/favorites" className="cursor-pointer">
                         <Heart className="ml-2 h-4 w-4" />
-                        المفضلة
+                        {t("المفضلة", "Favorites")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/account" className="cursor-pointer">
                         <Settings className="ml-2 h-4 w-4" />
-                        إعدادات الحساب
+                        {t("إعدادات الحساب", "Account settings")}
                       </Link>
                     </DropdownMenuItem>
                     {profile?.role === "admin" && (
@@ -188,7 +199,7 @@ export function Header() {
                         <DropdownMenuItem asChild>
                           <Link href="/admin" className="cursor-pointer">
                             <Shield className="ml-2 h-4 w-4" />
-                            لوحة الإدارة
+                            {t("لوحة الإدارة", "Admin")}
                           </Link>
                         </DropdownMenuItem>
                       </>
@@ -196,7 +207,7 @@ export function Header() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
                       <LogOut className="ml-2 h-4 w-4" />
-                      تسجيل الخروج
+                      {t("تسجيل الخروج", "Log out")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -206,13 +217,13 @@ export function Header() {
                 <Button asChild variant="outline" size="sm" className="gap-2">
                   <Link href="/login">
                     <User className="h-4 w-4" />
-                    تسجيل الدخول
+                    {t("تسجيل الدخول", "Log in")}
                   </Link>
                 </Button>
                 <Button asChild size="sm" className="gap-2">
                   <Link href="/register">
                     <Plus className="h-4 w-4" />
-                    أضف كتابك
+                    {t("أضف كتابك", "List your book")}
                   </Link>
                 </Button>
               </>
@@ -233,16 +244,16 @@ export function Header() {
           <div className="md:hidden py-4 space-y-4 border-t border-border/50">
             <nav className="flex flex-col gap-3">
               <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                الرئيسية
+                {t("الرئيسية", "Home")}
               </Link>
               <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                تصفح الكتب
+                {t("تصفح الكتب", "Browse books")}
               </Link>
               <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                الكليات
+                {t("الكليات", "Faculties")}
               </Link>
               <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                كيف يعمل
+                {t("كيف يعمل", "How it works")}
               </Link>
             </nav>
             <div className="flex flex-col gap-2 pt-2">
@@ -267,25 +278,33 @@ export function Header() {
                 onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               >
                 {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                {resolvedTheme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
+                {resolvedTheme === "dark"
+                  ? t("الوضع الفاتح", "Light mode")
+                  : t("الوضع الداكن", "Dark mode")}
               </Button>
               {user ? (
                 <>
                   <Button asChild size="sm" className="w-full gap-2">
                     <Link href="/dashboard/listings/new">
                       <Plus className="h-4 w-4" />
-                      أضف كتابك
+                      {t("أضف كتابك", "List your book")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
                     <Link href="/dashboard">
                       <LayoutDashboard className="h-4 w-4" />
-                      لوحة التحكم
+                      {t("لوحة التحكم", "Dashboard")}
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                    <Link href="/dashboard/purchases">
+                      <ShoppingBag className="h-4 w-4" />
+                      {t("مشترياتك", "Your purchases")}
                     </Link>
                   </Button>
                   <Button variant="ghost" size="sm" className="w-full gap-2 text-destructive" onClick={handleLogout}>
                     <LogOut className="h-4 w-4" />
-                    تسجيل الخروج
+                    {t("تسجيل الخروج", "Log out")}
                   </Button>
                 </>
               ) : (
@@ -293,13 +312,13 @@ export function Header() {
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
                     <Link href="/login">
                       <User className="h-4 w-4" />
-                      تسجيل الدخول
+                      {t("تسجيل الدخول", "Log in")}
                     </Link>
                   </Button>
                   <Button asChild size="sm" className="w-full gap-2">
                     <Link href="/register">
                       <Plus className="h-4 w-4" />
-                      أضف كتابك
+                      {t("أضف كتابك", "List your book")}
                     </Link>
                   </Button>
                 </>

@@ -5,16 +5,19 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
-import { useLanguage, useTranslate } from "@/components/language-provider"
+import { useTranslate } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Heart, BookOpen, Eye } from "lucide-react"
+import { discountPercentLabel, isPromoDiscountActive } from "@/lib/utils/listing-discount"
 
 type Listing = {
   id: string
   title: string
   price: number
+  original_price?: number | null
+  discount_expires_at?: string | null
   condition: string
   availability: string
   images: string[]
@@ -34,7 +37,6 @@ const availabilityColors: Record<string, string> = {
 }
 
 export function FavoritesContent({ listings: initialListings }: Props) {
-  const { language } = useLanguage()
   const t = useTranslate()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
@@ -89,6 +91,8 @@ export function FavoritesContent({ listings: initialListings }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {listings.map((listing) => {
             const availability = listing.availability || "available"
+            const showPromo = isPromoDiscountActive(listing)
+            const promoPct = discountPercentLabel(listing)
             return (
               <Card key={listing.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <Link href={`/book/${listing.id}`}>
@@ -110,6 +114,14 @@ export function FavoritesContent({ listings: initialListings }: Props) {
                     >
                       {availabilityLabels[availability]}
                     </Badge>
+                    {showPromo && promoPct != null && (
+                      <Badge
+                        variant="outline"
+                        className="absolute bottom-2 right-2 border-destructive/40 text-destructive bg-background/90 text-xs"
+                      >
+                        −{promoPct}%
+                      </Badge>
+                    )}
                   </div>
                 </Link>
                 <CardContent className="p-4">
@@ -123,9 +135,16 @@ export function FavoritesContent({ listings: initialListings }: Props) {
                       {listing.course.name}
                     </p>
                   )}
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="text-lg font-bold text-primary">
-                      {listing.price} {language === "ar" ? "د.أ" : "JOD"}
+                  <div className="flex items-center justify-between mt-3 gap-2">
+                    <span className="flex flex-wrap items-baseline gap-2">
+                      {showPromo &&
+                        listing.original_price != null &&
+                        Number(listing.original_price) > Number(listing.price) && (
+                          <span className="text-sm text-muted-foreground line-through">
+                            {listing.original_price} د.أ
+                          </span>
+                        )}
+                      <span className="text-lg font-bold text-primary">{listing.price} د.أ</span>
                     </span>
                     <span className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Eye className="h-3 w-3" />

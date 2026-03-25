@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -21,11 +21,14 @@ import {
   ChevronRight
 } from "lucide-react"
 import { useLanguage, useTranslate } from "@/components/language-provider"
+import { discountPercentLabel, isPromoDiscountActive } from "@/lib/utils/listing-discount"
 
 type Listing = {
   id: string
   title: string
   price: number
+  original_price?: number | null
+  discount_expires_at?: string | null
   condition: string
   item_type: string
   availability: "available" | "reserved" | "sold"
@@ -51,9 +54,29 @@ type Listing = {
   } | null
 }
 
-type Faculty = { id: string; name_ar?: string; name?: string }
-type Major = { id: string; faculty_id: string; name_ar?: string; name?: string }
-type Course = { id: string; major_id: string; code?: string; name_ar?: string; name?: string }
+type Faculty = { id: string; name_ar?: string; name_en?: string; name?: string }
+type Major = { id: string; faculty_id: string; name_ar?: string; name_en?: string; name?: string }
+type Course = {
+  id: string
+  major_id: string
+  code?: string
+  name_ar?: string
+  name_en?: string
+  name?: string
+}
+
+/** Jordanian Dinar — same symbol in both languages */
+const CURRENCY_JOD = "د.أ"
+
+function pickLocalizedName(
+  lang: "ar" | "en",
+  row: { name_ar?: string | null; name_en?: string | null; name?: string | null },
+) {
+  if (lang === "en") {
+    return row.name_en ?? row.name ?? row.name_ar ?? "-"
+  }
+  return row.name_ar ?? row.name ?? row.name_en ?? "-"
+}
 
 const ALL_VALUE = "__all__"
 
@@ -81,31 +104,11 @@ type Props = {
   filters: Filters
 }
 
-const conditionLabels: Record<string, string> = {
-  new: "جديد",
-  like_new: "كالجديد",
-  good: "جيد",
-  acceptable: "مقبول",
-}
-
 const conditionColors: Record<string, string> = {
   new: "bg-green-100 text-green-800",
   like_new: "bg-blue-100 text-blue-800",
   good: "bg-yellow-100 text-yellow-800",
   acceptable: "bg-gray-100 text-gray-800",
-}
-
-const itemTypeLabels: Record<string, string> = {
-  original: "كتاب أصلي",
-  notes: "ملزمة",
-  reference: "مرجع",
-  summary: "ملخص",
-}
-
-const availabilityLabels: Record<string, string> = {
-  available: "متاح",
-  reserved: "محجوز",
-  sold: "مباع",
 }
 
 const availabilityColors: Record<string, string> = {
@@ -129,7 +132,36 @@ export function BrowseContent({
   const t = useTranslate()
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
+  const conditionLabels = useMemo(
+    () => ({
+      new: t("جديد", "New"),
+      like_new: t("شبه جديد", "Like new"),
+      good: t("جيد", "Good"),
+      acceptable: t("مقبول", "Acceptable"),
+    }),
+    [t],
+  )
+
+  const itemTypeLabels = useMemo(
+    () => ({
+      original: t("كتاب أصلي", "Original book"),
+      notes: t("ملزمة", "Notes"),
+      reference: t("مرجع", "Reference"),
+      summary: t("ملخص", "Summary"),
+    }),
+    [t],
+  )
+
+  const availabilityLabels = useMemo(
+    () => ({
+      available: t("متاح", "Available"),
+      reserved: t("محجوز", "Reserved"),
+      sold: t("مباع", "Sold"),
+    }),
+    [t],
+  )
+
   const [search, setSearch] = useState(filters.search)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
@@ -185,18 +217,20 @@ export function BrowseContent({
     <div className="space-y-6">
       {/* Faculty */}
       <div className="space-y-2">
-        <Label>الكلية</Label>
-        <Select 
-          value={fromFilterValue(filters.faculty)} 
+        <Label>{t("الكلية", "Faculty")}</Label>
+        <Select
+          value={fromFilterValue(filters.faculty)}
           onValueChange={(v) => updateFilters({ faculty: toFilterValue(v), major: "", course: "" })}
         >
           <SelectTrigger>
-            <SelectValue placeholder="جميع الكليات" />
+            <SelectValue placeholder={t("جميع الكليات", "All faculties")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_VALUE}>جميع الكليات</SelectItem>
+            <SelectItem value={ALL_VALUE}>{t("جميع الكليات", "All faculties")}</SelectItem>
             {faculties.map((f) => (
-              <SelectItem key={f.id} value={f.id}>{language === "ar" ? (f.name_ar ?? f.name ?? "-") : (f.name ?? f.name_ar ?? "-")}</SelectItem>
+              <SelectItem key={f.id} value={f.id}>
+                {pickLocalizedName(language, f)}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -204,19 +238,21 @@ export function BrowseContent({
 
       {/* Major */}
       <div className="space-y-2">
-        <Label>التخصص</Label>
-        <Select 
-          value={fromFilterValue(filters.major)} 
+        <Label>{t("التخصص", "Major")}</Label>
+        <Select
+          value={fromFilterValue(filters.major)}
           onValueChange={(v) => updateFilters({ major: toFilterValue(v), course: "" })}
           disabled={!filters.faculty}
         >
           <SelectTrigger>
-            <SelectValue placeholder="جميع التخصصات" />
+            <SelectValue placeholder={t("جميع التخصصات", "All majors")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_VALUE}>جميع التخصصات</SelectItem>
+            <SelectItem value={ALL_VALUE}>{t("جميع التخصصات", "All majors")}</SelectItem>
             {filteredMajors.map((m) => (
-              <SelectItem key={m.id} value={m.id}>{language === "ar" ? (m.name_ar ?? m.name ?? "-") : (m.name ?? m.name_ar ?? "-")}</SelectItem>
+              <SelectItem key={m.id} value={m.id}>
+                {pickLocalizedName(language, m)}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -224,20 +260,21 @@ export function BrowseContent({
 
       {/* Course */}
       <div className="space-y-2">
-        <Label>المادة</Label>
-        <Select 
-          value={fromFilterValue(filters.course)} 
+        <Label>{t("المادة", "Course")}</Label>
+        <Select
+          value={fromFilterValue(filters.course)}
           onValueChange={(v) => updateFilters({ course: toFilterValue(v) })}
           disabled={!filters.major}
         >
           <SelectTrigger>
-            <SelectValue placeholder="جميع المواد" />
+            <SelectValue placeholder={t("جميع المواد", "All courses")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_VALUE}>جميع المواد</SelectItem>
+            <SelectItem value={ALL_VALUE}>{t("جميع المواد", "All courses")}</SelectItem>
             {filteredCourses.map((c) => (
               <SelectItem key={c.id} value={c.id}>
-                {c.code ? `${c.code} - ` : ""}{language === "ar" ? (c.name_ar ?? c.name ?? "-") : (c.name ?? c.name_ar ?? "-")}
+                {c.code ? `${c.code} - ` : ""}
+                {pickLocalizedName(language, c)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -246,58 +283,58 @@ export function BrowseContent({
 
       {/* Condition */}
       <div className="space-y-2">
-        <Label>الحالة</Label>
-        <Select 
-          value={fromFilterValue(filters.condition)} 
+        <Label>{t("الحالة", "Condition")}</Label>
+        <Select
+          value={fromFilterValue(filters.condition)}
           onValueChange={(v) => updateFilters({ condition: toFilterValue(v) })}
         >
           <SelectTrigger>
-            <SelectValue placeholder="جميع الحالات" />
+            <SelectValue placeholder={t("جميع الحالات", "All conditions")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_VALUE}>جميع الحالات</SelectItem>
-            <SelectItem value="new">جديد</SelectItem>
-            <SelectItem value="like_new">كالجديد</SelectItem>
-            <SelectItem value="good">جيد</SelectItem>
-            <SelectItem value="acceptable">مقبول</SelectItem>
+            <SelectItem value={ALL_VALUE}>{t("جميع الحالات", "All conditions")}</SelectItem>
+            <SelectItem value="new">{conditionLabels.new}</SelectItem>
+            <SelectItem value="like_new">{conditionLabels.like_new}</SelectItem>
+            <SelectItem value="good">{conditionLabels.good}</SelectItem>
+            <SelectItem value="acceptable">{conditionLabels.acceptable}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Item Type */}
       <div className="space-y-2">
-        <Label>نوع العنصر</Label>
-        <Select 
-          value={fromFilterValue(filters.itemType)} 
+        <Label>{t("نوع العنصر", "Item type")}</Label>
+        <Select
+          value={fromFilterValue(filters.itemType)}
           onValueChange={(v) => updateFilters({ itemType: toFilterValue(v) })}
         >
           <SelectTrigger>
-            <SelectValue placeholder="جميع الأنواع" />
+            <SelectValue placeholder={t("جميع الأنواع", "All types")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_VALUE}>جميع الأنواع</SelectItem>
-            <SelectItem value="original">كتاب أصلي</SelectItem>
-            <SelectItem value="notes">ملزمة</SelectItem>
-            <SelectItem value="reference">مرجع</SelectItem>
-            <SelectItem value="summary">ملخص</SelectItem>
+            <SelectItem value={ALL_VALUE}>{t("جميع الأنواع", "All types")}</SelectItem>
+            <SelectItem value="original">{itemTypeLabels.original}</SelectItem>
+            <SelectItem value="notes">{itemTypeLabels.notes}</SelectItem>
+            <SelectItem value="reference">{itemTypeLabels.reference}</SelectItem>
+            <SelectItem value="summary">{itemTypeLabels.summary}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Price Range */}
       <div className="space-y-2">
-        <Label>{t("نطاق السعر (د.أ)", "Price Range (JOD)")}</Label>
+        <Label>{t("نطاق السعر (د.أ)", "Price range (د.أ)")}</Label>
         <div className="flex gap-2">
           <Input
             type="number"
-            placeholder="من"
+            placeholder={t("من", "Min")}
             value={filters.minPrice || ""}
             onChange={(e) => updateFilters({ minPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
             min="0"
           />
           <Input
             type="number"
-            placeholder="إلى"
+            placeholder={t("إلى", "Max")}
             value={filters.maxPrice || ""}
             onChange={(e) => updateFilters({ maxPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
             min="0"
@@ -389,7 +426,9 @@ export function BrowseContent({
                   <div className="space-y-2">
                     {topSellers.map((seller, index) => (
                       <div key={seller.seller_id} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                        <span className="truncate">{index + 1}. {seller.full_name}</span>
+                        <span className="truncate">
+                          {index + 1}. {seller.full_name || t("مستخدم", "User")}
+                        </span>
                         <Badge variant="outline">{seller.sold_count} {t("مبيع", "sales")}</Badge>
                       </div>
                     ))}
@@ -408,9 +447,12 @@ export function BrowseContent({
                 <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">{t("لا توجد نتائج", "No results")}</h3>
                 <p className="text-muted-foreground mb-4">
-                  {hasFilters 
-                    ? "حاول تغيير الفلاتر أو البحث بكلمات مختلفة" 
-                    : "لا توجد كتب متاحة حالياً"}
+                  {hasFilters
+                    ? t(
+                        "حاول تغيير الفلاتر أو البحث بكلمات مختلفة",
+                        "Try changing filters or different search words",
+                      )
+                    : t("لا توجد كتب متاحة حالياً", "No books available right now")}
                 </p>
                 {hasFilters && (
                   <Button variant="outline" onClick={clearFilters}>
@@ -425,6 +467,8 @@ export function BrowseContent({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 {listings.map((listing) => {
                   const availability = listing.availability || "available"
+                  const showPromo = isPromoDiscountActive(listing)
+                  const promoPct = discountPercentLabel(listing)
                   return (
                   <Link key={listing.id} href={`/book/${listing.id}`}>
                     <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
@@ -441,16 +485,26 @@ export function BrowseContent({
                             <BookOpen className="h-12 w-12 text-muted-foreground" />
                           </div>
                         )}
-                        <Badge 
+                        <Badge
                           className={`absolute top-2 right-2 ${conditionColors[listing.condition]}`}
                         >
-                          {language === "ar" ? conditionLabels[listing.condition] : ({ new: "New", like_new: "Like New", good: "Good", acceptable: "Acceptable" }[listing.condition] || listing.condition)}
+                          {conditionLabels[listing.condition as keyof typeof conditionLabels] ??
+                            listing.condition}
                         </Badge>
-                        <Badge 
+                        <Badge
                           className={`absolute top-2 left-2 ${availabilityColors[availability]}`}
                         >
-                          {language === "ar" ? availabilityLabels[availability] : ({ available: "Available", reserved: "Reserved", sold: "Sold" }[availability] || availability)}
+                          {availabilityLabels[availability as keyof typeof availabilityLabels] ??
+                            availability}
                         </Badge>
+                        {showPromo && promoPct != null && (
+                          <Badge
+                            variant="outline"
+                            className="absolute bottom-2 right-2 border-destructive/40 text-destructive bg-background/90 backdrop-blur-sm text-xs"
+                          >
+                            −{promoPct}%
+                          </Badge>
+                        )}
                       </div>
                       <CardContent className="p-4">
                         <h3 className="font-medium line-clamp-1 mb-1">{listing.title}</h3>
@@ -460,14 +514,28 @@ export function BrowseContent({
                           </p>
                         )}
                         <div className="flex items-center justify-between mt-3">
-                          <span className="text-lg font-bold text-primary">{listing.price} {language === "ar" ? "د.أ" : "JOD"}</span>
+                          <div className="flex flex-wrap items-baseline gap-2">
+                            {showPromo &&
+                              listing.original_price != null &&
+                              Number(listing.original_price) > Number(listing.price) && (
+                                <span className="text-sm text-muted-foreground line-through">
+                                  {listing.original_price} {CURRENCY_JOD}
+                                </span>
+                              )}
+                            <span className="text-lg font-bold text-primary">
+                              {listing.price} {CURRENCY_JOD}
+                            </span>
+                          </div>
                           <span className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Eye className="h-3 w-3" />
                             {listing.views_count}
                           </span>
                         </div>
                         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{language === "ar" ? (itemTypeLabels[listing.item_type] || "كتاب أصلي") : ({ original: "Original Book", notes: "Notes", reference: "Reference", summary: "Summary" }[listing.item_type] || "Original Book")}</span>
+                          <span>
+                            {itemTypeLabels[listing.item_type as keyof typeof itemTypeLabels] ??
+                              itemTypeLabels.original}
+                          </span>
                           {listing.negotiable && <span>{t("قابل للتفاوض", "Negotiable")}</span>}
                         </div>
                       </CardContent>

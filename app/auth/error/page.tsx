@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, AlertTriangle } from "lucide-react"
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { AlertTriangle } from "lucide-react"
 
 export default function AuthErrorPage() {
   return (
@@ -13,7 +13,7 @@ export default function AuthErrorPage() {
           </div>
           <CardTitle className="text-2xl">حدث خطأ</CardTitle>
           <CardDescription className="text-base">
-            عذراً، حدث خطأ أثناء المصادقة. يرجى المحاولة مرة أخرى.
+            عذرًا، حدث خطأ أثناء المصادقة. يُرجى المحاولة مرة أخرى.
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex flex-col gap-3">

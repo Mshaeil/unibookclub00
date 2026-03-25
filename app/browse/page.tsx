@@ -187,7 +187,7 @@ export default async function BrowsePage({
     } else {
       topSellerMap.set(sellerId, {
         seller_id: sellerId,
-        full_name: seller?.full_name || "مستخدم",
+        full_name: seller?.full_name || "",
         sold_count: 1,
       })
     }

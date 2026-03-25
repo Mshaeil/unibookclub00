@@ -18,8 +18,19 @@ import {
   X, 
   AlertCircle, 
   CheckCircle,
-  Trash2
+  Trash2,
+  FileText,
+  MessageSquare,
 } from "lucide-react"
+import { isValidTenDigitPhone, sanitizePhoneDigits } from "@/lib/utils/phone"
+import {
+  closestListingDiscountPercent,
+  discountEndsAtFromNow,
+  LISTING_DISCOUNT_PCT_VALUES,
+  LISTING_DISCOUNT_RECOMMENDED_PCTS,
+  priceAfterPercentDiscount,
+} from "@/lib/utils/listing-discount"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +48,10 @@ type Listing = {
   title: string
   description: string | null
   price: number
+  original_price?: number | null
+  discount_expires_at?: string | null
   condition: string
+  item_type: string
   course_id: string | null
   whatsapp: string | null
   author: string | null
@@ -77,15 +91,27 @@ export function EditListingForm({
   const router = useRouter()
   const supabase = createClient()
 
+  const initialOriginal =
+    listing.original_price != null && Number(listing.original_price) > Number(listing.price)
+      ? Number(listing.original_price)
+      : null
+  const initialBase = initialOriginal ?? listing.price
+  const initialPct =
+    initialOriginal != null
+      ? closestListingDiscountPercent(initialOriginal, listing.price)
+      : 0
+  const [listBasePrice, setListBasePrice] = useState(String(initialBase))
+  const [discountPct, setDiscountPct] = useState(initialPct)
+  const [renewDiscount24h, setRenewDiscount24h] = useState(false)
   const [formData, setFormData] = useState({
     title: listing.title,
     description: (listing.description || "").replace(/\s*\[PDF_FILE\][\s\S]*?\[\/PDF_FILE\]\s*/, "").trim(),
-    price: listing.price.toString(),
     condition: listing.condition,
+    itemType: (listing.item_type || "original") as "original" | "notes" | "reference" | "summary",
     facultyId: initialFacultyId,
     majorId: initialMajorId,
     courseId: listing.course_id || "",
-    whatsapp: listing.whatsapp || "",
+    whatsapp: sanitizePhoneDigits(listing.whatsapp || "", 10),
     author: listing.author || "",
     edition: listing.edition || "",
   })
@@ -140,8 +166,17 @@ export function EditListingForm({
 
     try {
       if (!formData.title.trim()) throw new Error("يرجى إدخال عنوان الكتاب")
-      if (!formData.price || parseFloat(formData.price) <= 0) throw new Error("يرجى إدخال سعر صحيح")
-      if (!formData.whatsapp.trim()) throw new Error("يرجى إدخال رقم واتساب")
+      const base = parseFloat(listBasePrice.replace(",", "."))
+      if (!Number.isFinite(base) || base <= 0) throw new Error("يرجى إدخال السعر الأصلي بشكل صحيح")
+      const finalPrice = priceAfterPercentDiscount(base, discountPct)
+      if (!Number.isFinite(finalPrice) || finalPrice < 0) {
+        throw new Error("تعذر احتساب السعر بعد الخصم")
+      }
+      const originalPriceNum = discountPct > 0 ? base : null
+      const waDigits = sanitizePhoneDigits(formData.whatsapp, 10)
+      if (!isValidTenDigitPhone(waDigits)) {
+        throw new Error("رقم التواصل غير صالح")
+      }
       if (totalImages === 0) throw new Error("يرجى إضافة صورة واحدة على الأقل")
 
       // Upload new images
@@ -173,6 +208,17 @@ export function EditListingForm({
         "",
       ).trim()
 
+      let discountExpiresAt: string | null = null
+      if (discountPct > 0 && originalPriceNum != null) {
+        if (renewDiscount24h) {
+          discountExpiresAt = discountEndsAtFromNow()
+        } else if (initialOriginal == null) {
+          discountExpiresAt = discountEndsAtFromNow()
+        } else {
+          discountExpiresAt = listing.discount_expires_at ?? discountEndsAtFromNow()
+        }
+      }
+
       // Update listing
       const { error: updateError } = await supabase
         .from("listings")
@@ -182,12 +228,15 @@ export function EditListingForm({
             (cleanDescription || "") +
               (finalPdfPath ? `\n\n[PDF_FILE]${finalPdfPath}[/PDF_FILE]` : "") ||
             null,
-          price: parseFloat(formData.price),
+          price: finalPrice,
+          original_price: originalPriceNum,
+          discount_expires_at: discountExpiresAt,
+          item_type: formData.itemType,
           condition: formData.condition,
           faculty_id: formData.facultyId || null,
           major_id: formData.majorId || null,
           course_id: formData.courseId || null,
-          whatsapp: formData.whatsapp.trim() || null,
+          whatsapp: waDigits,
           author: formData.author.trim() || null,
           edition: formData.edition.trim() || null,
           images: uploadedPaths,
@@ -221,27 +270,9 @@ export function EditListingForm({
 
       router.push("/dashboard")
       router.refresh()
-    } catch (err) {
+    } catch {
       setError("فشل حذف الإعلان")
       setDeleting(false)
-    }
-  }
-
-  async function handleMarkAsSold() {
-    setLoading(true)
-    try {
-      const { error } = await supabase
-        .from("listings")
-        .update({ status: "sold" })
-        .eq("id", listing.id)
-
-      if (error) throw error
-
-      router.push("/dashboard")
-      router.refresh()
-    } catch (err) {
-      setError("فشل تحديث الحالة")
-      setLoading(false)
     }
   }
 
@@ -267,22 +298,14 @@ export function EditListingForm({
         </Alert>
       )}
 
-      {/* Images + PDF */}
+      {/* Images + PDF + text hint */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <Label className="text-base font-medium">صور الكتاب *</Label>
-            <div className="flex items-center gap-2">
-              <Label htmlFor="pdf" className="text-sm text-muted-foreground">PDF اختياري</Label>
-              <Input
-                id="pdf"
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
-                disabled={loading}
-                className="w-[180px]"
-              />
-            </div>
+          <div>
+            <Label className="text-base font-medium">صور وملفات الإعلان *</Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              نفس شكل مربع الرفع للصور وPDF والوصف النصي.
+            </p>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {existingImages.map((path, index) => (
@@ -325,9 +348,9 @@ export function EditListingForm({
               </div>
             ))}
             {totalImages < 5 && (
-              <label className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors">
-                <Upload className="h-6 w-6 text-muted-foreground mb-1" />
-                <span className="text-xs text-muted-foreground">إضافة صورة</span>
+              <label className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors text-center px-1">
+                <Upload className="h-6 w-6 text-muted-foreground mb-1 shrink-0" />
+                <span className="text-xs text-muted-foreground leading-tight">صور</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -338,18 +361,56 @@ export function EditListingForm({
                 />
               </label>
             )}
-          </div>
-          {existingPdfPath && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <a href={`/api/file?pathname=${encodeURIComponent(existingPdfPath)}`} target="_blank" rel="noreferrer" className="hover:underline">
-                عرض ملف PDF الحالي
-              </a>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setExistingPdfPath(null)}>
-                حذف PDF
-              </Button>
+            <div className="relative aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary hover:bg-muted/50 transition-colors">
+              <label className="flex h-full w-full flex-col items-center justify-center cursor-pointer text-center px-1 py-2">
+                <FileText className="h-6 w-6 text-muted-foreground mb-1 shrink-0" />
+                <span className="text-xs text-muted-foreground leading-tight">PDF</span>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                  disabled={loading}
+                />
+              </label>
+              {existingPdfPath && !pdfFile && (
+                <a
+                  href={`/api/file?pathname=${encodeURIComponent(existingPdfPath)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="absolute bottom-7 left-1 right-1 text-[10px] text-primary underline line-clamp-2"
+                >
+                  ملف محفوظ
+                </a>
+              )}
+              {(existingPdfPath || pdfFile) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPdfFile(null)
+                    setExistingPdfPath(null)
+                  }}
+                  className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full"
+                  aria-label="إزالة PDF"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+              {pdfFile && (
+                <p className="absolute bottom-8 left-1 right-1 text-[10px] text-foreground line-clamp-2 px-0.5">
+                  {pdfFile.name}
+                </p>
+              )}
             </div>
-          )}
-          {pdfFile && <p className="text-xs text-muted-foreground">تم اختيار: {pdfFile.name}</p>}
+            <button
+              type="button"
+              onClick={() => document.getElementById("description")?.focus()}
+              className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors text-center px-1"
+            >
+              <MessageSquare className="h-6 w-6 text-muted-foreground mb-1 shrink-0" />
+              <span className="text-xs text-muted-foreground leading-tight">وصف نصي</span>
+            </button>
+          </div>
         </CardContent>
       </Card>
 
@@ -389,7 +450,7 @@ export function EditListingForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">الوصف</Label>
+            <Label htmlFor="description">الوصف النصي</Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -400,27 +461,106 @@ export function EditListingForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price">السعر (د.أ) *</Label>
+            <Label>نوع العنصر *</Label>
+            <Select
+              value={formData.itemType}
+              onValueChange={(v) =>
+                setFormData({
+                  ...formData,
+                  itemType: v as "original" | "notes" | "reference" | "summary",
+                })
+              }
+              disabled={loading}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="original">كتاب أصلي</SelectItem>
+                <SelectItem value="notes">ملزمة</SelectItem>
+                <SelectItem value="reference">مرجع</SelectItem>
+                <SelectItem value="summary">ملخص</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-list-base-price">السعر الأصلي (د.أ) *</Label>
             <Input
-              id="price"
+              id="edit-list-base-price"
               type="number"
               min="0"
               step="0.5"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              inputMode="decimal"
+              value={listBasePrice}
+              onChange={(e) => setListBasePrice(e.target.value)}
               disabled={loading}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="whatsapp">رقم واتساب *</Label>
+            <Label>الخصم</Label>
+            <Select
+              value={String(discountPct)}
+              onValueChange={(v) => setDiscountPct(Number(v))}
+              disabled={loading}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {LISTING_DISCOUNT_PCT_VALUES.map((p) => (
+                  <SelectItem key={p} value={String(p)}>
+                    {p === 0
+                      ? "بدون خصم"
+                      : LISTING_DISCOUNT_RECOMMENDED_PCTS.has(p)
+                        ? `${p}% (يُنصح به)`
+                        : `${p}%`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {listBasePrice && Number(listBasePrice.replace(",", ".")) > 0 && (
+              <p className="text-sm text-muted-foreground">
+                السعر بعد الخصم:{" "}
+                <span className="font-semibold text-primary">
+                  {priceAfterPercentDiscount(
+                    Number(listBasePrice.replace(",", ".")),
+                    discountPct,
+                  )}{" "}
+                  د.أ
+                </span>
+              </p>
+            )}
+          </div>
+
+          {discountPct > 0 && (
+            <div className="flex items-start gap-2 rounded-lg border border-border/80 bg-muted/40 p-3">
+              <Checkbox
+                id="edit-renew-discount"
+                checked={renewDiscount24h}
+                onCheckedChange={(c) => setRenewDiscount24h(c === true)}
+                disabled={loading}
+              />
+              <Label htmlFor="edit-renew-discount" className="text-sm font-normal cursor-pointer leading-snug">
+                تجديد عرض الخصم لمدة <strong>24 ساعة</strong> من الآن
+              </Label>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp">رقم التواصل *</Label>
             <Input
               id="whatsapp"
               type="tel"
-              placeholder="07XXXXXXXX"
+              inputMode="numeric"
+              maxLength={10}
+              autoComplete="tel-national"
               value={formData.whatsapp}
-              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, whatsapp: sanitizePhoneDigits(e.target.value, 10) })
+              }
               disabled={loading}
               required
             />
@@ -524,17 +664,6 @@ export function EditListingForm({
             "حفظ التغييرات"
           )}
         </Button>
-
-        {listing.status === "approved" && (
-          <Button 
-            type="button" 
-            variant="secondary" 
-            onClick={handleMarkAsSold}
-            disabled={loading || deleting}
-          >
-            تم البيع
-          </Button>
-        )}
 
         <AlertDialog>
           <AlertDialogTrigger asChild>

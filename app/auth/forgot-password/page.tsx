@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { BookOpen, Loader2, Mail, AlertCircle, ArrowRight, CheckCircle } from "lucide-react"
+import { useTranslate } from "@/components/language-provider"
 
 export default function ForgotPasswordPage() {
+  const t = useTranslate()
   const [email, setEmail] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -44,16 +46,19 @@ export default function ForgotPasswordPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl">تحقق من بريدك الإلكتروني</CardTitle>
+            <CardTitle className="text-2xl">
+              {t("تحقق من بريدك الإلكتروني", "Check your email")}
+            </CardTitle>
             <CardDescription className="text-base">
-              أرسلنا رابط إعادة تعيين كلمة المرور إلى <strong>{email}</strong>
+              {t("أرسلنا رابط إعادة تعيين كلمة المرور إلى", "We sent a password reset link to")}{" "}
+              <strong>{email}</strong>
             </CardDescription>
           </CardHeader>
           <CardFooter>
             <Button asChild variant="outline" className="w-full">
               <Link href="/login">
                 <ArrowRight className="ml-2 h-4 w-4" />
-                العودة لتسجيل الدخول
+                {t("العودة لتسجيل الدخول", "Back to sign in")}
               </Link>
             </Button>
           </CardFooter>
@@ -77,9 +82,14 @@ export default function ForgotPasswordPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">نسيت كلمة المرور؟</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              {t("نسيت كلمة المرور؟", "Forgot password?")}
+            </CardTitle>
             <CardDescription>
-              أدخل بريدك الإلكتروني وسنرسل لك رابط لإعادة تعيين كلمة المرور
+              {t(
+                "أدخل بريدك الإلكتروني وسنرسل لك رابط لإعادة تعيين كلمة المرور",
+                "Enter your email and we will send you a link to reset your password",
+              )}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -92,7 +102,7 @@ export default function ForgotPasswordPage() {
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Label htmlFor="email">{t("البريد الإلكتروني", "Email")}</Label>
                 <div className="relative">
                   <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -113,10 +123,10 @@ export default function ForgotPasswordPage() {
                 {loading ? (
                   <>
                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري الإرسال...
+                    {t("جاري الإرسال...", "Sending...")}
                   </>
                 ) : (
-                  "إرسال رابط إعادة التعيين"
+                  t("إرسال رابط إعادة التعيين", "Send reset link")
                 )}
               </Button>
               <Link 
@@ -124,7 +134,7 @@ export default function ForgotPasswordPage() {
                 className="text-center text-sm text-muted-foreground hover:text-primary flex items-center justify-center gap-2"
               >
                 <ArrowRight className="h-4 w-4" />
-                العودة لتسجيل الدخول
+                {t("العودة لتسجيل الدخول", "Back to sign in")}
               </Link>
             </CardFooter>
           </form>

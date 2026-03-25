@@ -8,10 +8,14 @@ import { Badge } from "@/components/ui/badge"
 import { BookOpen, ChevronLeft } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
 
+import { discountPercentLabel, isPromoDiscountActive } from "@/lib/utils/listing-discount"
+
 type Listing = {
   id: string
   title: string
   price: number
+  original_price?: number | null
+  discount_expires_at?: string | null
   condition: string
   availability: string
   images: string[]
@@ -63,6 +67,8 @@ export function BooksSection({ listings }: Props) {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {displayListings.map((listing) => {
                 const availability = listing.availability || "available"
+                const showPromo = isPromoDiscountActive(listing)
+                const promoPct = discountPercentLabel(listing)
                 return (
                   <Link key={listing.id} href={`/book/${listing.id}`}>
                     <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
@@ -85,6 +91,14 @@ export function BooksSection({ listings }: Props) {
                         <Badge variant="secondary" className="absolute top-2 left-2">
                           {availabilityLabels[availability]}
                         </Badge>
+                        {showPromo && promoPct != null && (
+                          <Badge
+                            variant="outline"
+                            className="absolute bottom-2 right-2 border-destructive/40 text-destructive bg-background/90 text-xs"
+                          >
+                            −{promoPct}%
+                          </Badge>
+                        )}
                       </div>
                       <CardContent className="p-4">
                         <h3 className="font-medium line-clamp-1 mb-1">{listing.title}</h3>
@@ -93,7 +107,16 @@ export function BooksSection({ listings }: Props) {
                             {listing.course.name_ar ?? listing.course.name ?? "-"}
                           </p>
                         )}
-                        <p className="text-lg font-bold text-primary mt-2">{listing.price} د.أ</p>
+                        <div className="mt-2 flex flex-wrap items-baseline gap-2">
+                          {showPromo &&
+                            listing.original_price != null &&
+                            Number(listing.original_price) > Number(listing.price) && (
+                              <span className="text-sm text-muted-foreground line-through">
+                                {listing.original_price} د.أ
+                              </span>
+                            )}
+                          <p className="text-lg font-bold text-primary">{listing.price} د.أ</p>
+                        </div>
                       </CardContent>
                     </Card>
                   </Link>

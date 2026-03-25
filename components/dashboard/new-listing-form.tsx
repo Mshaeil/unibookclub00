@@ -17,8 +17,17 @@ import {
   Upload, 
   X, 
   AlertCircle, 
-  CheckCircle
+  CheckCircle,
+  FileText,
+  MessageSquare,
 } from "lucide-react"
+import { isValidTenDigitPhone, sanitizePhoneDigits } from "@/lib/utils/phone"
+import {
+  discountEndsAtFromNow,
+  LISTING_DISCOUNT_PCT_VALUES,
+  LISTING_DISCOUNT_RECOMMENDED_PCTS,
+  priceAfterPercentDiscount,
+} from "@/lib/utils/listing-discount"
 
 type Faculty = { id: string; name: string }
 type Major = { id: string; faculty_id: string; name: string }
@@ -41,11 +50,13 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
+  const [listBasePrice, setListBasePrice] = useState("")
+  const [discountPct, setDiscountPct] = useState(0)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    price: "",
     condition: "good",
+    itemType: "original" as "original" | "notes" | "reference" | "summary",
     facultyId: "",
     majorId: "",
     courseId: "",
@@ -99,8 +110,17 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
     try {
       // Validate
       if (!formData.title.trim()) throw new Error("يرجى إدخال عنوان الكتاب")
-      if (!formData.price || parseFloat(formData.price) <= 0) throw new Error("يرجى إدخال سعر صحيح")
-      if (!formData.whatsapp.trim()) throw new Error("يرجى إدخال رقم واتساب")
+      const base = parseFloat(listBasePrice.replace(",", "."))
+      if (!Number.isFinite(base) || base <= 0) throw new Error("يرجى إدخال السعر الأصلي بشكل صحيح")
+      const finalPrice = priceAfterPercentDiscount(base, discountPct)
+      if (!Number.isFinite(finalPrice) || finalPrice < 0) {
+        throw new Error("تعذر احتساب السعر بعد الخصم")
+      }
+      const originalPriceNum = discountPct > 0 ? base : null
+      const waDigits = sanitizePhoneDigits(formData.whatsapp, 10)
+      if (!isValidTenDigitPhone(waDigits)) {
+        throw new Error("رقم التواصل غير صالح")
+      }
       if (images.length === 0) throw new Error("يرجى إضافة صورة واحدة على الأقل")
 
       // Get current user
@@ -151,12 +171,15 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
             (formData.description.trim() || "") +
               (pdfPath ? `\n\n[PDF_FILE]${pdfPath}[/PDF_FILE]` : "") ||
             null,
-          price: parseFloat(formData.price),
+          price: finalPrice,
+          original_price: originalPriceNum,
+          discount_expires_at: discountPct > 0 ? discountEndsAtFromNow() : null,
+          item_type: formData.itemType,
           condition: formData.condition,
           faculty_id: formData.facultyId || null,
           major_id: formData.majorId || null,
           course_id: formData.courseId || null,
-          whatsapp: formData.whatsapp.trim() || null,
+          whatsapp: waDigits,
           author: formData.author.trim() || null,
           edition: formData.edition.trim() || null,
           images: uploadedPaths,
@@ -201,22 +224,14 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
         </Alert>
       )}
 
-      {/* Images + PDF */}
+      {/* Images + PDF + text hint (same tile style) */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <Label className="text-base font-medium">صور الكتاب *</Label>
-            <div className="flex items-center gap-2">
-              <Label htmlFor="pdf" className="text-sm text-muted-foreground">PDF اختياري</Label>
-              <Input
-                id="pdf"
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
-                disabled={loading}
-                className="w-[180px]"
-              />
-            </div>
+          <div>
+            <Label className="text-base font-medium">صور وملفات الإعلان *</Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              مربعات بنفس أسلوب الرفع: صور الكتاب، ملف PDF اختياري، واختصار للوصف النصي.
+            </p>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {images.map((img, index) => (
@@ -242,9 +257,9 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
               </div>
             ))}
             {images.length < 5 && (
-              <label className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors">
-                <Upload className="h-6 w-6 text-muted-foreground mb-1" />
-                <span className="text-xs text-muted-foreground">إضافة صورة</span>
+              <label className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors text-center px-1">
+                <Upload className="h-6 w-6 text-muted-foreground mb-1 shrink-0" />
+                <span className="text-xs text-muted-foreground leading-tight">صور</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -255,13 +270,46 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
                 />
               </label>
             )}
+            <div className="relative aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary hover:bg-muted/50 transition-colors">
+              <label className="flex h-full w-full flex-col items-center justify-center cursor-pointer text-center px-1 py-2">
+                <FileText className="h-6 w-6 text-muted-foreground mb-1 shrink-0" />
+                <span className="text-xs text-muted-foreground leading-tight">PDF</span>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                  disabled={loading}
+                />
+              </label>
+              {pdfFile && (
+                <>
+                  <p className="absolute bottom-8 left-1 right-1 text-[10px] text-foreground line-clamp-2 px-0.5">
+                    {pdfFile.name}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setPdfFile(null)}
+                    className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full"
+                    aria-label="إزالة PDF"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => document.getElementById("description")?.focus()}
+              className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors text-center px-1"
+            >
+              <MessageSquare className="h-6 w-6 text-muted-foreground mb-1 shrink-0" />
+              <span className="text-xs text-muted-foreground leading-tight">وصف نصي</span>
+            </button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            أضف حتى 5 صور. الصورة الأولى ستكون الصورة الرئيسية.
+          <p className="text-xs text-muted-foreground">
+            حتى 5 صور؛ الصورة الأولى رئيسية. PDF اختياري. «وصف نصي» ينقلك لحقل الوصف أدناه.
           </p>
-          {pdfFile && (
-            <p className="text-xs text-muted-foreground">تم اختيار: {pdfFile.name}</p>
-          )}
         </CardContent>
       </Card>
 
@@ -304,7 +352,7 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">الوصف</Label>
+            <Label htmlFor="description">الوصف النصي</Label>
             <Textarea
               id="description"
               placeholder="أضف تفاصيل إضافية عن حالة الكتاب..."
@@ -316,28 +364,97 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price">السعر (د.أ) *</Label>
+            <Label>نوع العنصر *</Label>
+            <Select
+              value={formData.itemType}
+              onValueChange={(v) =>
+                setFormData({
+                  ...formData,
+                  itemType: v as "original" | "notes" | "reference" | "summary",
+                })
+              }
+              disabled={loading}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="original">كتاب أصلي</SelectItem>
+                <SelectItem value="notes">ملزمة</SelectItem>
+                <SelectItem value="reference">مرجع</SelectItem>
+                <SelectItem value="summary">ملخص</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="list-base-price">السعر الأصلي (د.أ) *</Label>
             <Input
-              id="price"
+              id="list-base-price"
               type="number"
               min="0"
               step="0.5"
-              placeholder="0.00"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              inputMode="decimal"
+              value={listBasePrice}
+              onChange={(e) => setListBasePrice(e.target.value)}
               disabled={loading}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="whatsapp">رقم واتساب *</Label>
+            <Label>الخصم</Label>
+            <Select
+              value={String(discountPct)}
+              onValueChange={(v) => setDiscountPct(Number(v))}
+              disabled={loading}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {LISTING_DISCOUNT_PCT_VALUES.map((p) => (
+                  <SelectItem key={p} value={String(p)}>
+                    {p === 0
+                      ? "بدون خصم"
+                      : LISTING_DISCOUNT_RECOMMENDED_PCTS.has(p)
+                        ? `${p}% (يُنصح به)`
+                        : `${p}%`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {listBasePrice && Number(listBasePrice.replace(",", ".")) > 0 && (
+              <p className="text-sm text-muted-foreground">
+                السعر بعد الخصم:{" "}
+                <span className="font-semibold text-primary">
+                  {priceAfterPercentDiscount(
+                    Number(listBasePrice.replace(",", ".")),
+                    discountPct,
+                  )}{" "}
+                  د.أ
+                </span>
+                {discountPct > 0 && (
+                  <span className="text-xs block mt-1">
+                    يظهر عرض الخصم للمشترين لمدة 24 ساعة (قابل للتمديد من التعديل أو لوحة الإعلانات).
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp">رقم التواصل *</Label>
             <Input
               id="whatsapp"
               type="tel"
-              placeholder="07XXXXXXXX"
+              inputMode="numeric"
+              maxLength={10}
+              autoComplete="tel-national"
               value={formData.whatsapp}
-              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, whatsapp: sanitizePhoneDigits(e.target.value, 10) })
+              }
               disabled={loading}
               required
             />

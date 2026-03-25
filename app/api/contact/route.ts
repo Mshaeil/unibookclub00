@@ -50,7 +50,7 @@ ${message}`,
     }
 
     return NextResponse.json({ success: true })
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "خطأ داخلي في الخادم" },
       { status: 500 }

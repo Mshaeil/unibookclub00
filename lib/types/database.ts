@@ -62,6 +62,9 @@ export interface Listing {
   author: string | null
   edition: string | null
   price: number
+  original_price?: number | null
+  /** When set, promotional discount display ends after this time (null = no expiry). */
+  discount_expires_at?: string | null
   condition: BookCondition
   item_type: ListingItemType
   negotiable: boolean

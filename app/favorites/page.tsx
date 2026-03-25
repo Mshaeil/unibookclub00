@@ -22,6 +22,8 @@ export default async function FavoritesPage() {
         id,
         title,
         price,
+        original_price,
+        discount_expires_at,
         condition,
         availability,
         images,
@@ -39,6 +41,8 @@ export default async function FavoritesPage() {
     id: string
     title: string
     price: number
+    original_price?: number | null
+    discount_expires_at?: string | null
     condition: string
     availability: string
     images: string[]
