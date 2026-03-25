@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Switch } from "@/components/ui/switch"
 import Link from "next/link"
-import { CheckCircle, ExternalLink, MessageCircle, ShieldAlert, Trash2, XCircle } from "lucide-react"
+import { CheckCircle, ExternalLink, MessageCircle, RefreshCw, ShieldAlert, Trash2, XCircle } from "lucide-react"
 
 type Listing = {
   id: string
@@ -21,10 +22,19 @@ type Listing = {
   price: number
   status: "pending_review" | "approved" | "rejected" | "sold"
   availability: "available" | "reserved" | "sold"
+  views_count: number
+  updated_at: string
   created_at: string
   seller_id?: string
   course_id?: string
-  seller?: { id: string; full_name: string | null } | null
+  rejection_reason?: string | null
+  seller?: {
+    id: string
+    full_name: string | null
+    phone: string | null
+    whatsapp: string | null
+    email: string | null
+  } | null
   course?: { id: string; name: string } | null
 }
 
@@ -67,8 +77,17 @@ type Course = {
   name: string
 }
 
+type PlatformStats = {
+  approvedTotal: number
+  pendingTotal: number
+  soldTotal: number
+  rejectedTotal: number
+  homeSpotlightCount: number
+}
+
 type Props = {
   listings: Listing[]
+  platformStats: PlatformStats
   users: User[]
   reports: Report[]
   sales: {
@@ -117,8 +136,15 @@ const reportReasonLabel: Record<string, string> = {
   other: "سبب آخر",
 }
 
+const availabilityLabel: Record<string, string> = {
+  available: "متاح",
+  reserved: "محجوز",
+  sold: "مباع (توفر)",
+}
+
 export function AdminDashboard({
   listings: initialListings,
+  platformStats,
   users: initialUsers,
   reports: initialReports,
   sales: initialSales,
@@ -147,6 +173,44 @@ export function AdminDashboard({
   const [newMajorName, setNewMajorName] = useState("")
   const [newCourseMajor, setNewCourseMajor] = useState("")
   const [newCourseName, setNewCourseName] = useState("")
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  useEffect(() => {
+    setListings(initialListings)
+  }, [initialListings])
+
+  useEffect(() => {
+    setUsers(initialUsers)
+  }, [initialUsers])
+
+  useEffect(() => {
+    setReports(initialReports)
+  }, [initialReports])
+
+  useEffect(() => {
+    setFaculties(initialFaculties)
+  }, [initialFaculties])
+
+  useEffect(() => {
+    setMajors(initialMajors)
+  }, [initialMajors])
+
+  useEffect(() => {
+    setCourses(initialCourses)
+  }, [initialCourses])
+
+  useEffect(() => {
+    if (!autoRefresh) return
+    const id = window.setInterval(() => router.refresh(), 60_000)
+    return () => window.clearInterval(id)
+  }, [autoRefresh, router])
+
+  async function manualRefresh() {
+    setRefreshing(true)
+    router.refresh()
+    window.setTimeout(() => setRefreshing(false), 600)
+  }
 
   const filteredListings =
     listingFilter === "all" ? listings : listings.filter((l) => l.status === listingFilter)
@@ -198,9 +262,15 @@ export function AdminDashboard({
   async function deleteListing(id: string) {
     if (!window.confirm("هل أنت متأكد من حذف هذا الإعلان؟ لا يمكن التراجع.")) return
     setError(null)
-    const { error: deleteError } = await supabase.from("listings").delete().eq("id", id)
+    const { data, error: deleteError } = await supabase.from("listings").delete().eq("id", id).select("id")
     if (deleteError) {
-      setError("فشل حذف الإعلان")
+      setError(`فشل حذف الإعلان: ${deleteError.message}`)
+      return
+    }
+    if (!data?.length) {
+      setError(
+        "لم يُحذف أي صف — غالبًا سياسة RLS تمنع الحذف. نفّذ سكربت scripts/011_listings_admin_delete_rls.sql في Supabase (SQL Editor) ثم أعد المحاولة.",
+      )
       return
     }
     setListings((prev) => prev.filter((l) => l.id !== id))
@@ -454,6 +524,58 @@ export function AdminDashboard({
         </Alert>
       )}
 
+      <Card className="mb-6">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-lg">ملخص المنصة والرئيسية</CardTitle>
+            <CardDescription>
+              أرقام تطابق ما يظهر للزوار: المعتمد = المعروض في التصفح والرئيسية (ضمن الـ 12 الأحدث). التحديث التلقائي يعيد
+              جلب البيانات من السيرفر كل دقيقة.
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => void manualRefresh()} disabled={refreshing}>
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              تحديث الآن
+            </Button>
+            <div className="flex items-center gap-2">
+              <Switch id="admin-auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+              <Label htmlFor="admin-auto-refresh" className="text-sm font-normal">
+                تحديث تلقائي / دقيقة
+              </Label>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+            <div className="rounded-lg border bg-muted/40 p-3 text-center">
+              <p className="text-2xl font-bold tabular-nums">{platformStats.approvedTotal}</p>
+              <p className="text-xs text-muted-foreground">معتمد (ظاهر للزوار)</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3 text-center">
+              <p className="text-2xl font-bold tabular-nums">{platformStats.homeSpotlightCount}</p>
+              <p className="text-xs text-muted-foreground">في شريط الرئيسية (حتى 12)</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3 text-center">
+              <p className="text-2xl font-bold tabular-nums">{platformStats.pendingTotal}</p>
+              <p className="text-xs text-muted-foreground">قيد المراجعة</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3 text-center">
+              <p className="text-2xl font-bold tabular-nums">{platformStats.rejectedTotal}</p>
+              <p className="text-xs text-muted-foreground">مرفوض</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3 text-center">
+              <p className="text-2xl font-bold tabular-nums">{platformStats.soldTotal}</p>
+              <p className="text-xs text-muted-foreground">حالة &quot;مباع&quot; (سجل)</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3 text-center">
+              <p className="text-2xl font-bold tabular-nums">{listings.length}</p>
+              <p className="text-xs text-muted-foreground">إجمالي الإعلانات بالجدول</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="moderation" className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="moderation">مراجعة الإعلانات</TabsTrigger>
@@ -498,7 +620,10 @@ export function AdminDashboard({
                     <TableHead>البائع</TableHead>
                     <TableHead>المادة</TableHead>
                     <TableHead>السعر</TableHead>
-                    <TableHead>الحالة</TableHead>
+                    <TableHead>التوفر</TableHead>
+                    <TableHead>المشاهدات</TableHead>
+                    <TableHead>آخر تحديث</TableHead>
+                    <TableHead>حالة الإعلان</TableHead>
                     <TableHead>الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -510,11 +635,39 @@ export function AdminDashboard({
                           {listing.title}
                         </Link>
                       </TableCell>
-                      <TableCell>{listing.seller?.full_name || "مستخدم"}</TableCell>
+                      <TableCell className="max-w-[220px] align-top text-sm">
+                        <div className="space-y-1">
+                          <div className="font-medium">{listing.seller?.full_name || "—"}</div>
+                          {listing.seller?.email ? (
+                            <div className="break-all text-muted-foreground">{listing.seller.email}</div>
+                          ) : null}
+                          {listing.seller?.phone ? (
+                            <div className="text-muted-foreground">هاتف: {listing.seller.phone}</div>
+                          ) : null}
+                          {listing.seller?.whatsapp ? (
+                            <div className="text-muted-foreground">واتساب: {listing.seller.whatsapp}</div>
+                          ) : null}
+                          {!listing.seller && <span className="text-muted-foreground">لا بيانات بائع</span>}
+                        </div>
+                      </TableCell>
                       <TableCell>{listing.course?.name ?? "-"}</TableCell>
                       <TableCell>{listing.price} د.أ</TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{listingStatusLabel[listing.status]}</Badge>
+                        <Badge variant="outline">{availabilityLabel[listing.availability] ?? listing.availability}</Badge>
+                      </TableCell>
+                      <TableCell className="tabular-nums">{listing.views_count ?? 0}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        {new Date(listing.updated_at).toLocaleString("ar-JO")}
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="secondary">{listingStatusLabel[listing.status]}</Badge>
+                          {listing.status === "rejected" && listing.rejection_reason ? (
+                            <span className="max-w-[180px] text-xs text-muted-foreground" title={listing.rejection_reason}>
+                              سبب: {listing.rejection_reason.length > 60 ? `${listing.rejection_reason.slice(0, 60)}…` : listing.rejection_reason}
+                            </span>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">

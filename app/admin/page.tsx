@@ -32,11 +32,22 @@ const [
   facultiesResult,
   majorsResult,
   coursesResult,
+  approvedCountRes,
+  pendingCountRes,
+  soldCountRes,
+  rejectedCountRes,
+  homeFeaturedRes,
 ] = await Promise.all([
   supabase
-  .from("listings")
-  .select("id, title, price, status, availability, created_at, seller_id, course_id")
-  .order("created_at", { ascending: false }),
+    .from("listings")
+    .select(
+      `
+      id, title, price, status, availability, views_count, updated_at, created_at, seller_id, course_id, rejection_reason,
+      seller:profiles!listings_seller_id_fkey(id, full_name, phone, whatsapp, email),
+      course:courses(id, name_ar, name_en, name)
+    `,
+    )
+    .order("created_at", { ascending: false }),
   supabase
     .from("profiles")
     .select("id, full_name, phone, whatsapp, role, created_at, is_active, email")
@@ -60,6 +71,16 @@ const [
   supabase.from("faculties").select("id, name_ar, name").order("id"),
   supabase.from("majors").select("id, faculty_id, name_ar, name").order("id"),
   supabase.from("courses").select("id, major_id, name_ar, name").order("id"),
+  supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "approved"),
+  supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending_review"),
+  supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "sold"),
+  supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "rejected"),
+  supabase
+    .from("listings")
+    .select("id")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(12),
 ])
 
 if (listingsResult.error) {
@@ -100,8 +121,84 @@ if (majorsResult.error) {
 if (coursesResult.error) {
   console.error("Admin courses query error:", coursesResult.error)
 }
+if (approvedCountRes.error) {
+  console.error("Admin approved count error:", approvedCountRes.error)
+}
+if (pendingCountRes.error) {
+  console.error("Admin pending count error:", pendingCountRes.error)
+}
+if (soldCountRes.error) {
+  console.error("Admin sold count error:", soldCountRes.error)
+}
+if (rejectedCountRes.error) {
+  console.error("Admin rejected count error:", rejectedCountRes.error)
+}
+if (homeFeaturedRes.error) {
+  console.error("Admin home featured error:", homeFeaturedRes.error)
+}
 
-const listings = listingsResult.data || []
+type RawListingRow = {
+  id: string
+  title: string
+  price: number
+  status: "pending_review" | "approved" | "rejected" | "sold"
+  availability: "available" | "reserved" | "sold"
+  views_count?: number | null
+  updated_at?: string | null
+  created_at: string
+  seller_id?: string
+  course_id?: string | null
+  rejection_reason?: string | null
+  seller:
+    | { id: string; full_name: string | null; phone: string | null; whatsapp: string | null; email: string | null }
+    | { id: string; full_name: string | null; phone: string | null; whatsapp: string | null; email: string | null }[]
+    | null
+  course:
+    | { id: string; name_ar?: string | null; name_en?: string | null; name?: string | null }
+    | { id: string; name_ar?: string | null; name_en?: string | null; name?: string | null }[]
+    | null
+}
+
+const listings = (listingsResult.data || []).map((row: RawListingRow) => {
+  const seller = Array.isArray(row.seller) ? row.seller[0] : row.seller
+  const course = Array.isArray(row.course) ? row.course[0] : row.course
+  return {
+    id: row.id,
+    title: row.title,
+    price: row.price,
+    status: row.status,
+    availability: row.availability,
+    views_count: row.views_count ?? 0,
+    updated_at: row.updated_at ?? row.created_at,
+    created_at: row.created_at,
+    seller_id: row.seller_id,
+    course_id: row.course_id ?? undefined,
+    rejection_reason: row.rejection_reason ?? null,
+    seller: seller
+      ? {
+          id: seller.id,
+          full_name: seller.full_name,
+          phone: seller.phone,
+          whatsapp: seller.whatsapp,
+          email: seller.email,
+        }
+      : null,
+    course: course
+      ? {
+          id: course.id,
+          name: course.name_ar || course.name_en || course.name || "-",
+        }
+      : null,
+  }
+})
+
+const platformStats = {
+  approvedTotal: approvedCountRes.count ?? 0,
+  pendingTotal: pendingCountRes.count ?? 0,
+  soldTotal: soldCountRes.count ?? 0,
+  rejectedTotal: rejectedCountRes.count ?? 0,
+  homeSpotlightCount: (homeFeaturedRes.data || []).length,
+}
 const users = (usersResult.data || []).map((u: {
   id: string
   full_name: string | null
@@ -255,7 +352,8 @@ const sellerReviews = rawSellerReviews.map((r) => ({
 
   return (
     <AdminDashboard
-      listings={(listings || []) as Parameters<typeof AdminDashboard>[0]["listings"]}
+      listings={listings as Parameters<typeof AdminDashboard>[0]["listings"]}
+      platformStats={platformStats}
       users={users || []}
       reports={reports as Parameters<typeof AdminDashboard>[0]["reports"]}
       sales={sales as Parameters<typeof AdminDashboard>[0]["sales"]}
