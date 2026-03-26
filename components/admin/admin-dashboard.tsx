@@ -21,10 +21,6 @@ const AdminSecurityPanel = dynamic(
   () => import("@/components/admin/admin-security-panel").then((m) => m.AdminSecurityPanel),
   { loading: () => <p className="p-4 text-sm text-muted-foreground">جاري تحميل الأمان…</p> },
 )
-const AdminMessagesPanel = dynamic(
-  () => import("@/components/admin/admin-messages-panel").then((m) => m.AdminMessagesPanel),
-  { loading: () => <p className="p-4 text-sm text-muted-foreground">جاري تحميل الرسائل…</p> },
-)
 
 type Listing = {
   id: string
@@ -658,9 +654,6 @@ export function AdminDashboard({
           <TabsTrigger value="security" className="flex-none">
             الأمن
           </TabsTrigger>
-          <TabsTrigger value="admin-messages" className="flex-none">
-            الرسائل
-          </TabsTrigger>
           <TabsTrigger value="reports" className="flex-none">
             البلاغات
           </TabsTrigger>
@@ -1032,10 +1025,6 @@ export function AdminDashboard({
 
         <TabsContent value="security">
           <AdminSecurityPanel />
-        </TabsContent>
-
-        <TabsContent value="admin-messages">
-          <AdminMessagesPanel />
         </TabsContent>
 
         <TabsContent value="reports">

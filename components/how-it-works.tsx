@@ -7,7 +7,7 @@ import {
   Handshake,
   Search,
   Building2,
-  MessageSquare,
+  Phone,
   ShoppingBag
 } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
@@ -161,15 +161,15 @@ export function HowItWorks() {
                 </div>
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <MessageSquare className="h-4 w-4 text-secondary" />
+                    <Phone className="h-4 w-4 text-secondary" />
                     <span className="font-medium text-foreground">
                       {language === "ar" ? "تواصل مع البائع" : "Contact the seller"}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {language === "ar"
-                      ? "واتساب أو المحادثة داخل المنصة لاستكمال شراء الكتاب أو الملخص"
-                      : "WhatsApp or in-app chat to complete your purchase"}
+                      ? "تواصل مع البائع عبر واتساب لاستكمال شراء الكتاب أو الملخص"
+                      : "Contact the seller on WhatsApp to complete your purchase"}
                   </p>
                 </div>
               </div>

@@ -29,7 +29,6 @@ import {
   Sun,
   Moon,
   ShoppingBag,
-  MessageSquare,
 } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
@@ -207,12 +206,6 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/messages" className="cursor-pointer">
-                        <MessageSquare className="ml-2 h-4 w-4" />
-                        {t("الرسائل", "Messages")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
                       <Link href="/favorites" className="cursor-pointer">
                         <Heart className="ml-2 h-4 w-4" />
                         {t("المفضلة", "Favorites")}
@@ -331,12 +324,6 @@ export function Header() {
                     <Link href="/dashboard/purchases">
                       <ShoppingBag className="h-4 w-4" />
                       {t("مشترياتك", "Your purchases")}
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/dashboard/messages">
-                      <MessageSquare className="h-4 w-4" />
-                      {t("الرسائل", "Messages")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">

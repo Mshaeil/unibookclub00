@@ -74,8 +74,12 @@ export function BooksSection({ listings }: Props) {
                 const showPromo = isPromoDiscountActive(listing)
                 const promoPct = discountPercentLabel(listing)
                 return (
-                  <Link key={listing.id} href={`/book/${listing.id}`}>
-                    <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
+                  <Link
+                    key={listing.id}
+                    href={`/book/${listing.id}`}
+                    className="touch-manipulation block"
+                  >
+                    <Card className="h-full overflow-hidden transition-shadow duration-200 hover:shadow-md active:scale-[0.99]">
                       <div className="relative aspect-[4/3] bg-muted">
                         {listing.images?.[0] ? (
                           <Image

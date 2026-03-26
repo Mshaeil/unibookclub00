@@ -27,7 +27,6 @@ import {
   CheckCircle,
   XCircle,
   ShoppingBag,
-  MessageSquare,
   MoreVertical,
   Edit,
   Trash2,
@@ -390,12 +389,6 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
           <p className="text-muted-foreground">{t("إدارة إعلاناتك ومتابعة أداء كتبك", "Manage your listings and track performance")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" className="gap-2 transition-all duration-300 hover:shadow-md">
-            <Link href="/dashboard/messages">
-              <MessageSquare className="h-4 w-4" />
-              {t("الرسائل", "Messages")}
-            </Link>
-          </Button>
           <Button asChild className="gap-2 transition-all duration-300 hover:shadow-md">
             <Link href="/dashboard/listings/new">
               <Plus className="h-4 w-4" />

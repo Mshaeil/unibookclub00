@@ -13,7 +13,7 @@ import {
   Handshake,
   HelpCircle,
   MapPin,
-  MessageSquare,
+  Phone,
   Search,
   ShieldCheck,
   UserPlus,
@@ -134,11 +134,11 @@ export function HowItWorksBody() {
               ),
             },
             {
-              icon: <MessageSquare className="h-7 w-7 text-secondary" />,
+              icon: <Phone className="h-7 w-7 text-secondary" />,
               title: t("تواصل مع البائع", "Contact the seller"),
               body: t(
-                "راسل البائع عبر المنصة أو واتساب. استفسر عن التفاصيل وتفاوض إن أمكن",
-                "Message the seller on the platform or WhatsApp — ask questions and negotiate if needed",
+                "راسل البائع عبر واتساب من صفحة الإعلان. استفسر عن التفاصيل والتسليم والسعر",
+                "Message the seller on WhatsApp from the listing page — ask about details, delivery, and price",
               ),
             },
             {
