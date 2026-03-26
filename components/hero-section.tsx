@@ -1,9 +1,11 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, BookOpen, Search, Users } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
+import { createClient } from "@/lib/supabase/client"
 
 type HeroStats = {
   availableBooks: number
@@ -13,9 +15,32 @@ type HeroStats = {
 
 export function HeroSection({ stats }: { stats?: HeroStats }) {
   const { language } = useLanguage()
-  const availableBooks = stats?.availableBooks ?? 0
-  const sellersCount = stats?.sellersCount ?? 0
-  const soldCount = stats?.soldCount ?? 0
+  const supabase = useMemo(() => createClient(), [])
+  const [live, setLive] = useState<HeroStats | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const [approved, profiles, sold] = await Promise.all([
+        supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "sold"),
+      ])
+      if (cancelled) return
+      setLive({
+        availableBooks: approved.count ?? 0,
+        sellersCount: profiles.count ?? 0,
+        soldCount: sold.count ?? 0,
+      })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [supabase])
+
+  const availableBooks = live?.availableBooks ?? stats?.availableBooks ?? 0
+  const sellersCount = live?.sellersCount ?? stats?.sellersCount ?? 0
+  const soldCount = live?.soldCount ?? stats?.soldCount ?? 0
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5 transition-colors duration-500">
       {/* Background Pattern */}

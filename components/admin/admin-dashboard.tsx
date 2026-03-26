@@ -204,9 +204,19 @@ export function AdminDashboard({
 
   useEffect(() => {
     if (!autoRefresh) return
-    const id = window.setInterval(() => router.refresh(), 60_000)
+    const id = window.setInterval(() => router.refresh(), 30_000)
     return () => window.clearInterval(id)
   }, [autoRefresh, router])
+
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        router.refresh()
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
+  }, [router])
 
   async function manualRefresh() {
     setRefreshing(true)
@@ -532,7 +542,7 @@ export function AdminDashboard({
             <CardTitle className="text-lg">ملخص المنصة والرئيسية</CardTitle>
             <CardDescription>
               أرقام تطابق ما يظهر للزوار: المعتمد = المعروض في التصفح والرئيسية (ضمن الـ 12 الأحدث). التحديث التلقائي يعيد
-              جلب البيانات من السيرفر كل دقيقة.
+              جلب البيانات من السيرفر كل 30 ثانية (وعند العودة للتبويب).
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-4">
@@ -543,7 +553,7 @@ export function AdminDashboard({
             <div className="flex items-center gap-2">
               <Switch id="admin-auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} />
               <Label htmlFor="admin-auto-refresh" className="text-sm font-normal">
-                تحديث تلقائي / دقيقة
+                تحديث تلقائي / 30 ث
               </Label>
             </div>
           </div>

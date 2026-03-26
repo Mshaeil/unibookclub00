@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { createClient } from "@/lib/supabase/client"
+import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
 import {
   Dialog,
   DialogContent,
@@ -370,6 +371,7 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
       window.alert(t("لا يمكن مراسلة نفسك", "You cannot message yourself"))
       return
     }
+    await ensureUserProfile(supabase, user)
     const { error: rpcErr } = await supabase.rpc("get_or_create_conversation", {
       p_listing_id: listing.id,
     })

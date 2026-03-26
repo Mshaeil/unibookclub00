@@ -2,6 +2,9 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AdminDashboard } from "@/components/admin/admin-dashboard"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default async function AdminPage() {
   const supabase = await createClient()
   const {

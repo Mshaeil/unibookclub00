@@ -29,7 +29,6 @@ import {
   Sun,
   Moon,
   ShoppingBag,
-  Sparkles,
   MessageSquare,
 } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -104,29 +103,7 @@ export function Header() {
   }
 
   return (
-    <div className="sticky top-0 z-50 w-full">
-      <div className="border-b border-primary/10 bg-gradient-to-l from-primary/20 via-secondary/15 to-accent/10 backdrop-blur-md transition-all duration-300">
-        <div className="container mx-auto flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-2.5">
-          <p className="flex items-center justify-center gap-2 text-center text-xs font-medium text-foreground/90 sm:justify-start sm:text-start sm:text-sm">
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" />
-            <span>
-              {t(
-                "منصتك لبيع وشراء الملخصات والكتب الجامعية — عروض الطلاب، بأسعار مناسبة",
-                "Your hub for summaries & university books — student-to-student, fair prices",
-              )}
-            </span>
-          </p>
-          <div className="flex justify-center gap-2 sm:shrink-0">
-            <Button asChild size="sm" variant="secondary" className="h-8 text-xs shadow-sm transition-transform hover:scale-[1.02] sm:h-9 sm:text-sm">
-              <Link href="/browse">{t("تصفح الملخصات والكتب", "Browse summaries & books")}</Link>
-            </Button>
-            <Button asChild size="sm" className="h-8 text-xs shadow-sm transition-transform hover:scale-[1.02] sm:h-9 sm:text-sm">
-              <Link href="/dashboard/listings/new">{t("أضف إعلانك", "List yours")}</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-      <header className="w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-3 sm:px-4">
         <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
           {/* Logo */}
@@ -408,6 +385,5 @@ export function Header() {
         )}
       </div>
     </header>
-    </div>
   )
 }
