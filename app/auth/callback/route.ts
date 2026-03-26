@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
 
 /**
  * OAuth (Google) redirect target. Add this URL in Supabase:
@@ -41,6 +42,12 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        await ensureUserProfile(supabase, user)
+      }
       return NextResponse.redirect(`${origin}${next}`)
     }
   }

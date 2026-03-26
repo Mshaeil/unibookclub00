@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BookOpen, Loader2, Mail, User, Phone, GraduationCap, AlertCircle } from "lucide-react"
 import { useLanguage, useTranslate } from "@/components/language-provider"
+import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
 
 type Faculty = {
   id: string
@@ -145,7 +146,7 @@ export default function RegisterPage() {
       return
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data: signData, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
@@ -159,6 +160,10 @@ export default function RegisterPage() {
         },
       },
     })
+
+    if (signData.user && signData.session) {
+      await ensureUserProfile(supabase, signData.user)
+    }
 
     if (error) {
       if (error.message.includes("already registered")) {

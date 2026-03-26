@@ -34,6 +34,7 @@ import {
   GraduationCap,
   Heart,
   MessageCircle,
+  MessagesSquare,
   Share2,
   Star,
   Tag,
@@ -135,6 +136,8 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
   const [ratingValue, setRatingValue] = useState(5)
   const [ratingComment, setRatingComment] = useState("")
   const [ratingSubmitting, setRatingSubmitting] = useState(false)
+  const [contactDialogOpen, setContactDialogOpen] = useState(false)
+  const [openingChat, setOpeningChat] = useState(false)
   const availability = listing.availability || "available"
   const showPromoDiscount = isPromoDiscountActive(listing)
   const promoPct = discountPercentLabel(listing)
@@ -342,6 +345,50 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
     window.alert(t("تم إرسال تقييم البائع بنجاح", "Seller rating submitted"))
     setRatingComment("")
     setRatingValue(5)
+  }
+
+  const waDigits = (
+    listing.whatsapp ||
+    listing.seller?.whatsapp ||
+    listing.seller?.phone ||
+    ""
+  ).replace(/\D/g, "")
+  const canWhatsApp = waDigits.length >= 10
+
+  async function openDirectChat() {
+    setOpeningChat(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setOpeningChat(false)
+      setContactDialogOpen(false)
+      const next = encodeURIComponent(`/dashboard/messages?listing=${listing.id}`)
+      router.push(`/login?redirect=${next}`)
+      return
+    }
+    if (user.id === listing.seller?.id) {
+      setOpeningChat(false)
+      window.alert(t("لا يمكن مراسلة نفسك", "You cannot message yourself"))
+      return
+    }
+    const { error: rpcErr } = await supabase.rpc("get_or_create_conversation", {
+      p_listing_id: listing.id,
+    })
+    setOpeningChat(false)
+    setContactDialogOpen(false)
+    if (rpcErr) {
+      if (/does not exist|PGRST202|42883/i.test(rpcErr.message)) {
+        window.alert(
+          t(
+            "المحادثات غير مفعّلة بعد على الخادم. أبلغ الإدارة لتشغيل سكربت قاعدة البيانات.",
+            "Messaging is not enabled on the server yet. Ask the admin to run the database script.",
+          ),
+        )
+      } else {
+        window.alert(rpcErr.message)
+      }
+      return
+    }
+    router.push(`/dashboard/messages?listing=${listing.id}`)
   }
 
   async function handleShare() {
@@ -718,23 +765,71 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
                 </Card>
               )}
               <div className="flex gap-3">
-                <Button
-                  size="lg"
-                  className="flex-1 gap-2"
-                  disabled={availability !== "available" || !(listing.whatsapp || listing.seller?.whatsapp || listing.seller?.phone)}
-                  asChild
-                >
-                  <a
-                    href={`https://wa.me/${(listing.whatsapp || listing.seller?.whatsapp || listing.seller?.phone || "").replace(/\D/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
+                <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="flex-1 gap-2 transition-all duration-300 hover:shadow-md active:scale-[0.98]"
+                    disabled={availability !== "available"}
+                    onClick={() => availability === "available" && setContactDialogOpen(true)}
                   >
                     <MessageCircle className="w-5 h-5" />
                     {availability === "available"
                       ? t("تواصل مع البائع", "Contact seller")
                       : statusLabels[availability]}
-                  </a>
-                </Button>
+                  </Button>
+                  <DialogContent className="sm:max-w-md" dir="rtl">
+                    <DialogHeader>
+                      <DialogTitle>{t("تواصل مع البائع", "Contact seller")}</DialogTitle>
+                      <DialogDescription>
+                        {t(
+                          "اختر طريقة التواصل. المحادثة داخل المنصة تُنقل عبر HTTPS وتُخزَّن مشفّرة على الخادم.",
+                          "Choose how to reach the seller. In-app chat uses HTTPS and encrypted storage on the server.",
+                        )}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-3 py-2">
+                      {canWhatsApp ? (
+                        <Button className="w-full gap-2 h-12" asChild>
+                          <a
+                            href={`https://wa.me/${waDigits}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={() => setContactDialogOpen(false)}
+                          >
+                            <MessageCircle className="w-5 h-5" />
+                            {t("واتساب", "WhatsApp")}
+                          </a>
+                        </Button>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center">
+                          {t("لا يتوفر رقم واتساب لهذا الإعلان.", "No WhatsApp number for this listing.")}
+                        </p>
+                      )}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full gap-2 h-12"
+                        onClick={() => void openDirectChat()}
+                        disabled={openingChat || viewer?.isSeller}
+                      >
+                        {openingChat ? (
+                          <span className="text-sm">{t("جاري الفتح…", "Opening…")}</span>
+                        ) : (
+                          <>
+                            <MessagesSquare className="w-5 h-5" />
+                            {t("محادثة مباشرة في المنصة", "In-app chat")}
+                          </>
+                        )}
+                      </Button>
+                      {viewer?.isSeller && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          {t("أنت بائع هذا الإعلان.", "You are the seller of this listing.")}
+                        </p>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Button
                   size="lg"
                   variant="outline"

@@ -20,17 +20,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    // Validate file type (images + PDF)
     const isImage = file.type.startsWith("image/")
-    const isPdf = file.type === "application/pdf"
-    if (!isImage && !isPdf) {
-      return NextResponse.json({ error: "Only images and PDF are allowed" }, { status: 400 })
+    const allowedDoc =
+      file.type === "application/pdf" ||
+      file.type === "application/msword" ||
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.type === "application/vnd.ms-powerpoint" ||
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
+      file.type === "application/zip" ||
+      file.type === "application/x-zip-compressed" ||
+      file.type === "text/plain"
+
+    if (!isImage && !allowedDoc) {
+      return NextResponse.json(
+        { error: "Allowed: images, PDF, Word, PowerPoint, ZIP, or text" },
+        { status: 400 },
+      )
     }
 
-    // Validate file size (image: 5MB, pdf: 10MB)
-    const maxSize = isPdf ? 10 * 1024 * 1024 : 5 * 1024 * 1024
+    const maxSize = isImage ? 5 * 1024 * 1024 : 10 * 1024 * 1024
     if (file.size > maxSize) {
-      return NextResponse.json({ error: `File too large (max ${isPdf ? "10MB" : "5MB"})` }, { status: 400 })
+      return NextResponse.json(
+        { error: `File too large (max ${isImage ? "5MB" : "10MB"})` },
+        { status: 400 },
+      )
     }
 
     // Generate unique filename

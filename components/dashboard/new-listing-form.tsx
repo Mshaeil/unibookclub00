@@ -66,7 +66,7 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
   })
 
   const [images, setImages] = useState<{ file: File; preview: string }[]>([])
-  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -149,14 +149,14 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
       setUploading(false)
 
       let pdfPath: string | null = null
-      if (pdfFile) {
+      if (attachmentFile) {
         const fd = new FormData()
-        fd.append("file", pdfFile)
+        fd.append("file", attachmentFile)
         const pdfRes = await fetch("/api/upload", {
           method: "POST",
           body: fd,
         })
-        if (!pdfRes.ok) throw new Error("فشل رفع ملف PDF")
+        if (!pdfRes.ok) throw new Error("فشل رفع المرفق")
         const pdfData = await pdfRes.json()
         pdfPath = pdfData.pathname || null
       }
@@ -228,9 +228,10 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div>
-            <Label className="text-base font-medium">صور وملفات الإعلان *</Label>
+            <Label className="text-base font-medium">صور الإعلان *</Label>
             <p className="text-xs text-muted-foreground mt-1">
-              مربعات بنفس أسلوب الرفع: صور الكتاب، ملف PDF اختياري، واختصار للوصف النصي.
+              صور الكتاب مطلوبة (واحدة على الأقل). مرفق اختياري: PDF أو Word أو عرض تقديمي أو ZIP — ليس شرطاً
+              لنشر الإعلان.
             </p>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
@@ -270,28 +271,28 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
                 />
               </label>
             )}
-            <div className="relative aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary hover:bg-muted/50 transition-colors">
+            <div className="relative aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 transition-all duration-300 hover:border-primary hover:bg-muted/50">
               <label className="flex h-full w-full flex-col items-center justify-center cursor-pointer text-center px-1 py-2">
                 <FileText className="h-6 w-6 text-muted-foreground mb-1 shrink-0" />
-                <span className="text-xs text-muted-foreground leading-tight">PDF</span>
+                <span className="text-xs text-muted-foreground leading-tight">مرفق</span>
                 <input
                   type="file"
-                  accept="application/pdf"
-                  onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/zip,text/plain"
+                  onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
                   className="hidden"
                   disabled={loading}
                 />
               </label>
-              {pdfFile && (
+              {attachmentFile && (
                 <>
                   <p className="absolute bottom-8 left-1 right-1 text-[10px] text-foreground line-clamp-2 px-0.5">
-                    {pdfFile.name}
+                    {attachmentFile.name}
                   </p>
                   <button
                     type="button"
-                    onClick={() => setPdfFile(null)}
+                    onClick={() => setAttachmentFile(null)}
                     className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full"
-                    aria-label="إزالة PDF"
+                    aria-label="إزالة المرفق"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -301,14 +302,14 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
             <button
               type="button"
               onClick={() => document.getElementById("description")?.focus()}
-              className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors text-center px-1"
+              className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-all duration-300 text-center px-1"
             >
               <MessageSquare className="h-6 w-6 text-muted-foreground mb-1 shrink-0" />
               <span className="text-xs text-muted-foreground leading-tight">وصف نصي</span>
             </button>
           </div>
           <p className="text-xs text-muted-foreground">
-            حتى 5 صور؛ الصورة الأولى رئيسية. PDF اختياري. «وصف نصي» ينقلك لحقل الوصف أدناه.
+            حتى 5 صور؛ الصورة الأولى رئيسية. المرفق اختياري. «وصف نصي» ينقلك لحقل الوصف أدناه.
           </p>
         </CardContent>
       </Card>

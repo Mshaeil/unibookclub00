@@ -15,8 +15,25 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { BookOpen, Menu, Plus, User, X, LogOut, LayoutDashboard, Heart, Settings, Shield, Sun, Moon, ShoppingBag } from "lucide-react"
+import {
+  BookOpen,
+  Menu,
+  Plus,
+  User,
+  X,
+  LogOut,
+  LayoutDashboard,
+  Heart,
+  Settings,
+  Shield,
+  Sun,
+  Moon,
+  ShoppingBag,
+  Sparkles,
+  MessageSquare,
+} from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
 
 type Profile = {
   full_name: string | null
@@ -40,6 +57,7 @@ export function Header() {
       setUser(user)
       
       if (user) {
+        await ensureUserProfile(supabase, user)
         const { data } = await supabase
           .from("profiles")
           .select("full_name, role")
@@ -52,11 +70,19 @@ export function Header() {
 
     getUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       if (!session?.user) {
         setProfile(null)
+        return
       }
+      await ensureUserProfile(supabase, session.user)
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", session.user.id)
+        .single()
+      setProfile(data)
     })
 
     return () => subscription.unsubscribe()
@@ -78,17 +104,39 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
+    <div className="sticky top-0 z-50 w-full">
+      <div className="border-b border-primary/10 bg-gradient-to-l from-primary/20 via-secondary/15 to-accent/10 backdrop-blur-md transition-all duration-300">
+        <div className="container mx-auto flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-2.5">
+          <p className="flex items-center justify-center gap-2 text-center text-xs font-medium text-foreground/90 sm:justify-start sm:text-start sm:text-sm">
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" />
+            <span>
+              {t(
+                "منصتك لبيع وشراء الملخصات والكتب الجامعية — عروض الطلاب، بأسعار مناسبة",
+                "Your hub for summaries & university books — student-to-student, fair prices",
+              )}
+            </span>
+          </p>
+          <div className="flex justify-center gap-2 sm:shrink-0">
+            <Button asChild size="sm" variant="secondary" className="h-8 text-xs shadow-sm transition-transform hover:scale-[1.02] sm:h-9 sm:text-sm">
+              <Link href="/browse">{t("تصفح الملخصات والكتب", "Browse summaries & books")}</Link>
+            </Button>
+            <Button asChild size="sm" className="h-8 text-xs shadow-sm transition-transform hover:scale-[1.02] sm:h-9 sm:text-sm">
+              <Link href="/dashboard/listings/new">{t("أضف إعلانك", "List yours")}</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+      <header className="w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-3 sm:px-4">
+        <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-              <BookOpen className="h-5 w-5 text-primary-foreground" />
+          <Link href="/" className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-primary transition-transform duration-300 hover:scale-105">
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-bold text-foreground">UniBookClub</span>
-              <span className="text-xs text-muted-foreground">
+            <div className="min-w-0 flex flex-col">
+              <span className="truncate text-base sm:text-lg font-bold text-foreground">UniBookClub</span>
+              <span className="truncate text-[10px] sm:text-xs text-muted-foreground">
                 {t("جامعة العلوم التطبيقية", "Applied Science University")}
               </span>
             </div>
@@ -179,6 +227,12 @@ export function Header() {
                       <Link href="/dashboard/purchases" className="cursor-pointer">
                         <ShoppingBag className="ml-2 h-4 w-4" />
                         {t("مشترياتك", "Your purchases")}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/messages" className="cursor-pointer">
+                        <MessageSquare className="ml-2 h-4 w-4" />
+                        {t("الرسائل", "Messages")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -302,6 +356,32 @@ export function Header() {
                       {t("مشترياتك", "Your purchases")}
                     </Link>
                   </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                    <Link href="/dashboard/messages">
+                      <MessageSquare className="h-4 w-4" />
+                      {t("الرسائل", "Messages")}
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                    <Link href="/favorites">
+                      <Heart className="h-4 w-4" />
+                      {t("المفضلة", "Favorites")}
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                    <Link href="/account">
+                      <Settings className="h-4 w-4" />
+                      {t("إعدادات الحساب", "Account settings")}
+                    </Link>
+                  </Button>
+                  {profile?.role === "admin" && (
+                    <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                      <Link href="/admin">
+                        <Shield className="h-4 w-4" />
+                        {t("لوحة الإدارة", "Admin")}
+                      </Link>
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm" className="w-full gap-2 text-destructive" onClick={handleLogout}>
                     <LogOut className="h-4 w-4" />
                     {t("تسجيل الخروج", "Log out")}
@@ -328,5 +408,6 @@ export function Header() {
         )}
       </div>
     </header>
+    </div>
   )
 }

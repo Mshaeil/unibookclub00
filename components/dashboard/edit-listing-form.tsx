@@ -118,7 +118,7 @@ export function EditListingForm({
 
   const [existingImages, setExistingImages] = useState<string[]>(listing.images || [])
   const [newImages, setNewImages] = useState<{ file: File; preview: string }[]>([])
-  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
   const [existingPdfPath, setExistingPdfPath] = useState<string | null>(
     listing.description?.match(/\[PDF_FILE\](.*?)\[\/PDF_FILE\]/)?.[1] || null
   )
@@ -194,11 +194,11 @@ export function EditListingForm({
       }
 
       let finalPdfPath = existingPdfPath
-      if (pdfFile) {
+      if (attachmentFile) {
         const fd = new FormData()
-        fd.append("file", pdfFile)
+        fd.append("file", attachmentFile)
         const pdfRes = await fetch("/api/upload", { method: "POST", body: fd })
-        if (!pdfRes.ok) throw new Error("فشل رفع ملف PDF")
+        if (!pdfRes.ok) throw new Error("فشل رفع المرفق")
         const pdfData = await pdfRes.json()
         finalPdfPath = pdfData.pathname || null
       }
@@ -302,9 +302,9 @@ export function EditListingForm({
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div>
-            <Label className="text-base font-medium">صور وملفات الإعلان *</Label>
+            <Label className="text-base font-medium">صور الإعلان *</Label>
             <p className="text-xs text-muted-foreground mt-1">
-              نفس شكل مربع الرفع للصور وPDF والوصف النصي.
+              صور مطلوبة. مرفق اختياري (PDF، Word، عرض، ZIP…) — ليس شرطاً للنشر.
             </p>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
@@ -361,19 +361,19 @@ export function EditListingForm({
                 />
               </label>
             )}
-            <div className="relative aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary hover:bg-muted/50 transition-colors">
+            <div className="relative aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/25 transition-all duration-300 hover:border-primary hover:bg-muted/50">
               <label className="flex h-full w-full flex-col items-center justify-center cursor-pointer text-center px-1 py-2">
                 <FileText className="h-6 w-6 text-muted-foreground mb-1 shrink-0" />
-                <span className="text-xs text-muted-foreground leading-tight">PDF</span>
+                <span className="text-xs text-muted-foreground leading-tight">مرفق</span>
                 <input
                   type="file"
-                  accept="application/pdf"
-                  onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/zip,text/plain"
+                  onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
                   className="hidden"
                   disabled={loading}
                 />
               </label>
-              {existingPdfPath && !pdfFile && (
+              {existingPdfPath && !attachmentFile && (
                 <a
                   href={`/api/file?pathname=${encodeURIComponent(existingPdfPath)}`}
                   target="_blank"
@@ -383,22 +383,22 @@ export function EditListingForm({
                   ملف محفوظ
                 </a>
               )}
-              {(existingPdfPath || pdfFile) && (
+              {(existingPdfPath || attachmentFile) && (
                 <button
                   type="button"
                   onClick={() => {
-                    setPdfFile(null)
+                    setAttachmentFile(null)
                     setExistingPdfPath(null)
                   }}
                   className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full"
-                  aria-label="إزالة PDF"
+                  aria-label="إزالة المرفق"
                 >
                   <X className="h-3 w-3" />
                 </button>
               )}
-              {pdfFile && (
+              {attachmentFile && (
                 <p className="absolute bottom-8 left-1 right-1 text-[10px] text-foreground line-clamp-2 px-0.5">
-                  {pdfFile.name}
+                  {attachmentFile.name}
                 </p>
               )}
             </div>

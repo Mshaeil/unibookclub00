@@ -376,9 +376,9 @@ export function BrowseContent({
           <Button type="submit">{t("بحث", "Search")}</Button>
         </form>
 
-        <div className="flex gap-2">
+        <div className="flex flex-1 gap-2 min-w-0 sm:flex-initial">
           <Select value={filters.sort} onValueChange={(v) => updateFilters({ sort: v })}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="min-w-0 flex-1 sm:w-[160px] sm:flex-initial">
               <SelectValue placeholder={t("الترتيب", "Sort")} />
             </SelectTrigger>
             <SelectContent>
@@ -471,7 +471,7 @@ export function BrowseContent({
                   const promoPct = discountPercentLabel(listing)
                   return (
                   <Link key={listing.id} href={`/book/${listing.id}`}>
-                    <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
+                    <Card className="h-full overflow-hidden transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1">
                       <div className="relative aspect-[4/3] bg-muted">
                         {listing.images?.[0] ? (
                           <Image

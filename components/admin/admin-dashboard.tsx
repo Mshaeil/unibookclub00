@@ -15,6 +15,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch"
 import Link from "next/link"
 import { CheckCircle, ExternalLink, MessageCircle, RefreshCw, ShieldAlert, Trash2, XCircle } from "lucide-react"
+import { AdminSecurityPanel } from "@/components/admin/admin-security-panel"
+import { AdminMessagesPanel } from "@/components/admin/admin-messages-panel"
 
 type Listing = {
   id: string
@@ -577,15 +579,37 @@ export function AdminDashboard({
       </Card>
 
       <Tabs defaultValue="moderation" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-8">
-          <TabsTrigger value="moderation">مراجعة الإعلانات</TabsTrigger>
-          <TabsTrigger value="users">المستخدمون</TabsTrigger>
-          <TabsTrigger value="reports">البلاغات</TabsTrigger>
-          <TabsTrigger value="sales">عمليات البيع</TabsTrigger>
-          <TabsTrigger value="reviews">تقييمات البائعين</TabsTrigger>
-          <TabsTrigger value="faculties">الكليات</TabsTrigger>
-          <TabsTrigger value="majors">التخصصات</TabsTrigger>
-          <TabsTrigger value="courses">المواد</TabsTrigger>
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1.5 bg-muted/50 p-1.5">
+          <TabsTrigger value="moderation" className="flex-none">
+            مراجعة الإعلانات
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex-none">
+            المستخدمون
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex-none">
+            الأمن
+          </TabsTrigger>
+          <TabsTrigger value="admin-messages" className="flex-none">
+            الرسائل
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex-none">
+            البلاغات
+          </TabsTrigger>
+          <TabsTrigger value="sales" className="flex-none">
+            عمليات البيع
+          </TabsTrigger>
+          <TabsTrigger value="reviews" className="flex-none">
+            تقييمات البائعين
+          </TabsTrigger>
+          <TabsTrigger value="faculties" className="flex-none">
+            الكليات
+          </TabsTrigger>
+          <TabsTrigger value="majors" className="flex-none">
+            التخصصات
+          </TabsTrigger>
+          <TabsTrigger value="courses" className="flex-none">
+            المواد
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="moderation">
@@ -781,6 +805,14 @@ export function AdminDashboard({
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <AdminSecurityPanel />
+        </TabsContent>
+
+        <TabsContent value="admin-messages">
+          <AdminMessagesPanel />
         </TabsContent>
 
         <TabsContent value="reports">

@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { BookOpen, Loader2, Mail, AlertCircle } from "lucide-react"
 import { useTranslate } from "@/components/language-provider"
 import { PasswordField } from "@/components/auth/password-field"
+import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
 
 export default function LoginForm() {
   const t = useTranslate()
@@ -54,7 +55,7 @@ export default function LoginForm() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: signData, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -63,6 +64,10 @@ export default function LoginForm() {
       setError(mapAuthError(error.message))
       setLoading(false)
       return
+    }
+
+    if (signData.user) {
+      await ensureUserProfile(supabase, signData.user)
     }
 
     router.push(redirect)
