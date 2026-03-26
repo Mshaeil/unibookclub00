@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Eye } from "lucide-react"
+import { Eye, Loader2, Paperclip } from "lucide-react"
 
 type Conv = {
   id: string
@@ -17,11 +17,23 @@ type Conv = {
   seller: { full_name: string | null; email: string | null } | null
 }
 
+type MsgAtt = { pathname: string; name: string; mime: string }
+
 type Msg = {
   id: string
   body: string
+  attachments?: MsgAtt[]
   created_at: string
   sender_id: string
+}
+
+function isProbablyImage(att: MsgAtt) {
+  if (att.mime.startsWith("image/")) return true
+  return /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(att.name)
+}
+
+function fileUrl(pathname: string) {
+  return `/api/file?pathname=${encodeURIComponent(pathname)}`
 }
 
 function one<T>(x: T | T[] | null): T | null {
@@ -183,7 +195,43 @@ export function AdminMessagesPanel() {
                             مرسل: {m.sender_id.slice(0, 8)}… ·{" "}
                             {new Date(m.created_at).toLocaleString("ar-JO")}
                           </div>
-                          <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                          {m.body ? (
+                            <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                          ) : null}
+                          {(m.attachments ?? []).length > 0 ? (
+                            <div className={`space-y-2 ${m.body ? "mt-2" : ""}`}>
+                              {(m.attachments ?? []).map((att) =>
+                                isProbablyImage(att) ? (
+                                  <a
+                                    key={att.pathname}
+                                    href={fileUrl(att.pathname)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block max-w-sm overflow-hidden rounded-md border"
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={fileUrl(att.pathname)}
+                                      alt={att.name}
+                                      className="max-h-40 w-full object-contain bg-muted"
+                                      loading="lazy"
+                                    />
+                                  </a>
+                                ) : (
+                                  <a
+                                    key={att.pathname}
+                                    href={fileUrl(att.pathname)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-primary underline"
+                                  >
+                                    <Paperclip className="h-3.5 w-3.5" />
+                                    {att.name}
+                                  </a>
+                                ),
+                              )}
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                     </div>

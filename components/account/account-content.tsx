@@ -194,7 +194,7 @@ export function AccountContent({
         <div>
           <h1 className="text-2xl font-bold">إعدادات الحساب</h1>
           <p className="text-muted-foreground">
-            إدارة معلوماتك وإعلاناتك
+            إدارة معلوماتك وعروض الكتب والملخصات
           </p>
         </div>
 
@@ -337,18 +337,18 @@ export function AccountContent({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              إعلاناتي
+              عروضي (كتب وملخصات)
             </CardTitle>
             <CardDescription>
-              {initialListings.length} إعلان
+              {initialListings.length} عرض
             </CardDescription>
           </CardHeader>
           <CardContent>
             {initialListings.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
-                <p className="mb-4">لا توجد إعلانات</p>
+                <p className="mb-4">لا توجد عروض بعد — اعرض كتاباً أو ملخصاً</p>
                 <Button asChild>
-                  <Link href="/dashboard/listings/new">أضف إعلاناً</Link>
+                  <Link href="/dashboard/listings/new">أضف عرضاً</Link>
                 </Button>
               </div>
             ) : (

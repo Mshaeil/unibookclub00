@@ -109,7 +109,7 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
 
     try {
       // Validate
-      if (!formData.title.trim()) throw new Error("يرجى إدخال عنوان الكتاب")
+      if (!formData.title.trim()) throw new Error("يرجى إدخال عنوان العرض (كتاب أو ملخص)")
       const base = parseFloat(listBasePrice.replace(",", "."))
       if (!Number.isFinite(base) || base <= 0) throw new Error("يرجى إدخال السعر الأصلي بشكل صحيح")
       const finalPrice = priceAfterPercentDiscount(base, discountPct)
@@ -208,8 +208,10 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <h2 className="text-xl font-bold mb-2">تم إضافة الكتاب بنجاح!</h2>
-          <p className="text-muted-foreground">سيتم مراجعة إعلانك ونشره قريباً</p>
+          <h2 className="text-xl font-bold mb-2">تم إرسال عرضك بنجاح!</h2>
+          <p className="text-muted-foreground">
+            سنراجع كتابك أو ملخصك وننشره بعد الاعتماد قريباً
+          </p>
         </CardContent>
       </Card>
     )
@@ -228,10 +230,9 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div>
-            <Label className="text-base font-medium">صور الإعلان *</Label>
+            <Label className="text-base font-medium">صور الكتاب أو الملخص *</Label>
             <p className="text-xs text-muted-foreground mt-1">
-              صور الكتاب مطلوبة (واحدة على الأقل). مرفق اختياري: PDF أو Word أو عرض تقديمي أو ZIP — ليس شرطاً
-              لنشر الإعلان.
+              صورة واحدة على الأقل مطلوبة. مرفق اختياري (PDF وغيره) للمشتري بعد البيع — ليس شرطاً للنشر.
             </p>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
@@ -318,10 +319,10 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">عنوان الكتاب *</Label>
+            <Label htmlFor="title">عنوان العرض (كتاب / ملخص) *</Label>
             <Input
               id="title"
-              placeholder="مثال: مبادئ علم الحاسوب"
+              placeholder="مثال: مبادئ الحاسوب — ملخص الفصل الأوّل"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               disabled={loading}
@@ -356,7 +357,7 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
             <Label htmlFor="description">الوصف النصي</Label>
             <Textarea
               id="description"
-              placeholder="أضف تفاصيل إضافية عن حالة الكتاب..."
+              placeholder="حالة الغلاف، عدد الصفحات، ما يغطيه الملخص، أي ملاحظات للمشتري…"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               disabled={loading}
@@ -365,7 +366,7 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>نوع العنصر *</Label>
+            <Label>نوع المحتوى *</Label>
             <Select
               value={formData.itemType}
               onValueChange={(v) =>
@@ -437,7 +438,7 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
                 </span>
                 {discountPct > 0 && (
                   <span className="text-xs block mt-1">
-                    يظهر عرض الخصم للمشترين لمدة 24 ساعة (قابل للتمديد من التعديل أو لوحة الإعلانات).
+                    يظهر عرض الخصم للمشترين 24 ساعة (يمكن التمديد من تعديل العرض أو لوحة التحكم).
                   </span>
                 )}
               </p>
@@ -466,7 +467,7 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
       {/* Condition */}
       <Card>
         <CardContent className="pt-6">
-          <Label className="text-base font-medium mb-4 block">حالة الكتاب *</Label>
+          <Label className="text-base font-medium mb-4 block">حالة النسخة (كتاب أو مطبوع) *</Label>
           <RadioGroup
             value={formData.condition}
             onValueChange={(v) => setFormData({ ...formData, condition: v })}
@@ -497,7 +498,7 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
         <CardContent className="pt-6 space-y-4">
           <Label className="text-base font-medium mb-2 block">ربط بمادة (اختياري)</Label>
           <p className="text-sm text-muted-foreground mb-4">
-            ربط الكتاب بمادة يساعد الطلاب في العثور عليه بسهولة
+            ربط عرضك بمادة يجعل الكتب والملخصات تظهر لزملائك في نفس التخصص
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -575,10 +576,10 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
           {loading ? (
             <>
               <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-              {uploading ? "جاري رفع الصور..." : "جاري النشر..."}
+              {uploading ? "جاري رفع الصور..." : "جاري إرسال العرض..."}
             </>
           ) : (
-            "نشر الإعلان"
+            "نشر العرض"
           )}
         </Button>
       </div>

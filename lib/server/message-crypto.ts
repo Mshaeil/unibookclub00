@@ -22,18 +22,20 @@ export function getMessageEncryptionKey(): Buffer {
   return buf
 }
 
+/** Max UTF-8 payload (text + JSON metadata for attachments). */
+const MAX_PLAINTEXT_CHARS = 24_000
+
 export function encryptMessagePlaintext(plaintext: string): string {
-  const trimmed = plaintext.trim()
-  if (trimmed.length === 0) {
+  if (plaintext.length === 0) {
     throw new Error("empty message")
   }
-  if (trimmed.length > 4000) {
+  if (plaintext.length > MAX_PLAINTEXT_CHARS) {
     throw new Error("message too long")
   }
   const key = getMessageEncryptionKey()
   const iv = randomBytes(IV_LENGTH)
   const cipher = createCipheriv(ALGO, key, iv, { authTagLength: AUTH_TAG_LENGTH })
-  const encrypted = Buffer.concat([cipher.update(trimmed, "utf8"), cipher.final()])
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()])
   const tag = cipher.getAuthTag()
   return Buffer.concat([iv, encrypted, tag]).toString("base64")
 }

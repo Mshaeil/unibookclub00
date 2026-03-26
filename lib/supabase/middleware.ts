@@ -96,6 +96,32 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Block suspended / banned accounts (requires profiles row + column account_status from scripts/016)
+  if (user && (isProtectedRoute || isAdminRoute)) {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('is_active, account_status')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (prof) {
+      const st = (prof.account_status || 'active').toLowerCase()
+      const blocked =
+        prof.is_active === false || st === 'suspended' || st === 'banned'
+      if (blocked) {
+        await supabase.auth.signOut()
+        const url = request.nextUrl.clone()
+        url.pathname = '/account-blocked'
+        url.searchParams.set('type', st === 'banned' ? 'banned' : 'suspended')
+        const redirectResponse = NextResponse.redirect(url)
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+          redirectResponse.cookies.set(cookie.name, cookie.value)
+        })
+        return redirectResponse
+      }
+    }
+  }
+
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   // If you're creating a new response object with NextResponse.next() make sure to:
   // 1. Pass the request in it, like so:

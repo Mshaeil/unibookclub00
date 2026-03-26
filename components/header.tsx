@@ -125,7 +125,7 @@ export function Header() {
               {t("الرئيسية", "Home")}
             </Link>
             <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              {t("تصفح الكتب", "Browse books")}
+              {t("تصفح الكتب والملخصات", "Browse books & summaries")}
             </Link>
             <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               {t("الكليات", "Faculties")}
@@ -166,7 +166,7 @@ export function Header() {
                 <Button asChild size="sm" className="gap-2">
                   <Link href="/dashboard/listings/new">
                     <Plus className="h-4 w-4" />
-                    {t("أضف كتابك", "List your book")}
+                    {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                   </Link>
                 </Button>
                 <DropdownMenu>
@@ -254,7 +254,7 @@ export function Header() {
                 <Button asChild size="sm" className="gap-2">
                   <Link href="/register">
                     <Plus className="h-4 w-4" />
-                    {t("أضف كتابك", "List your book")}
+                    {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                   </Link>
                 </Button>
               </>
@@ -278,7 +278,7 @@ export function Header() {
                 {t("الرئيسية", "Home")}
               </Link>
               <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                {t("تصفح الكتب", "Browse books")}
+                {t("تصفح الكتب والملخصات", "Browse books & summaries")}
               </Link>
               <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                 {t("الكليات", "Faculties")}
@@ -318,7 +318,7 @@ export function Header() {
                   <Button asChild size="sm" className="w-full gap-2">
                     <Link href="/dashboard/listings/new">
                       <Plus className="h-4 w-4" />
-                      {t("أضف كتابك", "List your book")}
+                      {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
@@ -375,7 +375,7 @@ export function Header() {
                   <Button asChild size="sm" className="w-full gap-2">
                     <Link href="/register">
                       <Plus className="h-4 w-4" />
-                      {t("أضف كتابك", "List your book")}
+                      {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                     </Link>
                   </Button>
                 </>

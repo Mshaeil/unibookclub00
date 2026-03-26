@@ -47,7 +47,7 @@ export function HeroSection({ stats }: { stats?: HeroStats }) {
   const sellersCount = live?.sellersCount ?? stats?.sellersCount ?? 0
   const soldCount = live?.soldCount ?? stats?.soldCount ?? 0
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5 transition-colors duration-500">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5 transition-colors duration-300 motion-reduce:transition-none">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-20 right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
@@ -77,8 +77,8 @@ export function HeroSection({ stats }: { stats?: HeroStats }) {
           {/* Description */}
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-pretty px-1">
             {language === "ar"
-              ? "بيع واشترِ الملخصات والكتب والمراجع بسهولة — منصة لطلاب جامعة العلوم التطبيقية بتجربة مرتبة على الجوال والكمبيوتر."
-              : "Buy and sell summaries, books, and references easily — a tidy experience on phone and desktop for ASU students."}
+              ? "منصة تركّز على الكتب الجامعية والملخصات: بيعها وشراؤها بسهولة داخل جامعة العلوم التطبيقية — تجربة واضحة على الجوال والكمبيوتر."
+              : "Focused on university books and summaries: buy and sell them easily at Applied Science University — a clear experience on mobile and desktop."}
           </p>
 
           {/* CTA Buttons */}
@@ -91,7 +91,7 @@ export function HeroSection({ stats }: { stats?: HeroStats }) {
             </Button>
             <Button size="lg" variant="outline" className="gap-2 px-6 sm:px-8 text-base transition-all duration-300 hover:shadow-md hover:-translate-y-0.5" asChild>
               <Link href="/dashboard/listings/new">
-                {language === "ar" ? "أضف إعلانك" : "List yours"}
+                {language === "ar" ? "اعرض كتابك أو ملخصك" : "List book or summary"}
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
@@ -104,7 +104,9 @@ export function HeroSection({ stats }: { stats?: HeroStats }) {
                 <BookOpen className="h-6 w-6 text-primary" />
               </div>
               <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tabular-nums">{availableBooks}+</div>
-              <div className="text-xs sm:text-sm text-muted-foreground leading-tight">{language === "ar" ? "إعلان متاح" : "Listings"}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground leading-tight">
+                {language === "ar" ? "كتب وملخصات متاحة" : "Books & summaries"}
+              </div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-xl bg-secondary/10">

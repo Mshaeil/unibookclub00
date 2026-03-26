@@ -355,9 +355,13 @@ export function BrowseContent({
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">{t("تصفح الكتب", "Browse Books")}</h1>
+        <h1 className="text-2xl font-bold mb-2">
+          {t("تصفح الكتب والملخصات", "Browse books & summaries")}
+        </h1>
         <p className="text-muted-foreground">
-          {totalCount > 0 ? `${totalCount} ${t("كتاب متاح للبيع", "books available for sale")}` : t("ابحث عن الكتب الجامعية", "Find university books")}
+          {totalCount > 0
+            ? `${totalCount} ${t("عرض لكتب وملخصات معتمدة", "approved books & summaries")}`
+            : t("ابحث عن الكتب والملخصات لمادتك", "Find books and summaries for your course")}
         </p>
       </div>
 
@@ -452,7 +456,7 @@ export function BrowseContent({
                         "حاول تغيير الفلاتر أو البحث بكلمات مختلفة",
                         "Try changing filters or different search words",
                       )
-                    : t("لا توجد كتب متاحة حالياً", "No books available right now")}
+                    : t("لا توجد كتب أو ملخصات مطابقة", "No matching books or summaries")}
                 </p>
                 {hasFilters && (
                   <Button variant="outline" onClick={clearFilters}>

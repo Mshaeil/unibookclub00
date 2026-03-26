@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AdminDashboard } from "@/components/admin/admin-dashboard"
+import { isSuperAdminEmail } from "@/lib/super-admin"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -207,6 +208,7 @@ type UserRow = {
   role: "user" | "admin"
   created_at: string
   is_active?: boolean | null
+  account_status?: string | null
   email?: string | null
 }
 
@@ -221,12 +223,46 @@ if (!adminUsersRpc.error && Array.isArray(adminUsersRpc.data)) {
   usersRaw = (fb.data || []) as UserRow[]
 }
 
-const users = usersRaw.map((u) => ({
-  ...u,
-  role: u.role === "admin" ? "admin" as const : "user" as const,
-  is_active: u.is_active !== false,
-  email: u.email ?? null,
-}))
+function normalizeAccountStatus(
+  raw: string | null | undefined,
+  isActive: boolean,
+): "active" | "suspended" | "banned" {
+  const s = (raw || "").toLowerCase()
+  if (s === "banned") return "banned"
+  if (s === "suspended") return "suspended"
+  if (!isActive) return "suspended"
+  return "active"
+}
+
+const users = usersRaw.map((u) => {
+  const isActive = u.is_active !== false
+  return {
+    ...u,
+    role: u.role === "admin" ? ("admin" as const) : ("user" as const),
+    is_active: isActive,
+    account_status: normalizeAccountStatus(u.account_status, isActive),
+    email: u.email ?? null,
+  }
+})
+
+const isSuperAdmin = isSuperAdminEmail(user.email)
+let superAdmins: {
+  id: string
+  email: string
+  full_name: string
+  role: string
+  is_active: boolean
+  account_status: string
+  created_at: string
+}[] = []
+if (isSuperAdmin) {
+  const { data: adminsRpc, error: adminsErr } = await supabase.rpc("admin_list_admins")
+  if (adminsErr) {
+    console.error("admin_list_admins RPC error:", adminsErr)
+  } else if (Array.isArray(adminsRpc)) {
+    superAdmins = adminsRpc as typeof superAdmins
+  }
+}
 const rawReports = (reportsResult.data || []) as {
   id: string
   reason: string
@@ -375,6 +411,9 @@ const sellerReviews = rawSellerReviews.map((r) => ({
       faculties={faculties || []}
       majors={majors || []}
       courses={courses || []}
+      viewerUserId={user.id}
+      isSuperAdmin={isSuperAdmin}
+      superAdmins={superAdmins}
     />
   )
 }

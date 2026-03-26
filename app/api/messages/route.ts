@@ -5,6 +5,12 @@ import {
   encryptMessagePlaintext,
   getMessageEncryptionKey,
 } from "@/lib/server/message-crypto"
+import {
+  isSafeListingStoragePath,
+  parseMessagePayload,
+  stringifyMessagePayload,
+  type MessageAttachment,
+} from "@/lib/messages/payload"
 
 type MessageRow = {
   id: string
@@ -15,27 +21,30 @@ type MessageRow = {
   conversation_id: string
 }
 
-function toPlainMessage(row: MessageRow): { id: string; body: string; created_at: string; sender_id: string } {
-  if (row.cipher_blob) {
-    try {
-      return {
-        id: row.id,
-        body: decryptMessageBlob(row.cipher_blob),
-        created_at: row.created_at,
-        sender_id: row.sender_id,
-      }
-    } catch {
-      return {
-        id: row.id,
-        body: "[تعذر فك تشفير الرسالة — تحقق من مفتاح الخادم]",
-        created_at: row.created_at,
-        sender_id: row.sender_id,
-      }
-    }
-  }
+export type ApiMessage = {
+  id: string
+  body: string
+  attachments: MessageAttachment[]
+  created_at: string
+  sender_id: string
+}
+
+function toPlainMessage(row: MessageRow): ApiMessage {
+  const raw = row.cipher_blob
+    ? (() => {
+        try {
+          return decryptMessageBlob(row.cipher_blob)
+        } catch {
+          return "[تعذر فك تشفير الرسالة — تحقق من مفتاح الخادم]"
+        }
+      })()
+    : (row.body?.trim() ?? "")
+
+  const { text, attachments } = parseMessagePayload(raw)
   return {
     id: row.id,
-    body: row.body?.trim() ?? "",
+    body: text,
+    attachments,
     created_at: row.created_at,
     sender_id: row.sender_id,
   }
@@ -117,6 +126,14 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ messages })
 }
 
+const MAX_ATTACHMENTS = 6
+
+type PostJson = {
+  conversation_id?: string
+  body?: string
+  attachments?: { pathname?: string; name?: string; mime?: string }[]
+}
+
 /** POST: send encrypted message (buyer or seller only) */
 export async function POST(request: NextRequest) {
   try {
@@ -125,23 +142,74 @@ export async function POST(request: NextRequest) {
     return encryptionNotReadyResponse()
   }
 
-  let conversationId: string
-  let body: string
+  let json: PostJson
   try {
-    const json = (await request.json()) as { conversation_id?: string; body?: string }
-    conversationId = String(json.conversation_id ?? "").trim()
-    body = typeof json.body === "string" ? json.body : ""
+    json = (await request.json()) as PostJson
   } catch {
     return NextResponse.json({ error: "JSON غير صالح" }, { status: 400 })
   }
 
-  if (!conversationId || !body.trim()) {
-    return NextResponse.json({ error: "conversation_id والنص مطلوبان" }, { status: 400 })
+  const conversationId = String(json.conversation_id ?? "").trim()
+  const text = typeof json.body === "string" ? json.body : ""
+  const rawAtt = Array.isArray(json.attachments) ? json.attachments : []
+
+  if (!conversationId) {
+    return NextResponse.json({ error: "conversation_id مطلوب" }, { status: 400 })
+  }
+
+  if (rawAtt.length > MAX_ATTACHMENTS) {
+    return NextResponse.json(
+      { error: `الحد الأقصى ${MAX_ATTACHMENTS} مرفقات` },
+      { status: 400 },
+    )
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const attachments: MessageAttachment[] = []
+  for (const a of rawAtt) {
+    const pathname = typeof a.pathname === "string" ? a.pathname.trim() : ""
+    if (!pathname) continue
+    if (!isSafeListingStoragePath(pathname, user.id)) {
+      return NextResponse.json(
+        { error: "مسار مرفق غير صالح — ارفع الملف من نفس الحساب عبر الزر المخصص" },
+        { status: 400 },
+      )
+    }
+    const name =
+      typeof a.name === "string" && a.name.trim()
+        ? a.name.trim().slice(0, 240)
+        : pathname.split("/").pop() || "مرفق"
+    const mime = typeof a.mime === "string" ? a.mime.trim().slice(0, 120) : ""
+    attachments.push({ pathname, name, mime })
+  }
+
+  if (text.trim().length === 0 && attachments.length === 0) {
+    return NextResponse.json(
+      { error: "أضف نصاً أو مرفقاً واحداً على الأقل" },
+      { status: 400 },
+    )
+  }
+
+  let payload: string
+  try {
+    payload = stringifyMessagePayload(text, attachments)
+  } catch (e) {
+    if (e instanceof Error && e.message === "empty payload") {
+      return NextResponse.json({ error: "الرسالة فارغة" }, { status: 400 })
+    }
+    return NextResponse.json({ error: "تعذر تجهيز الرسالة" }, { status: 400 })
   }
 
   let cipherBlob: string
   try {
-    cipherBlob = encryptMessagePlaintext(body)
+    cipherBlob = encryptMessagePlaintext(payload)
   } catch (e) {
     if (e instanceof Error) {
       if (e.message === "message too long") {
@@ -152,14 +220,6 @@ export async function POST(request: NextRequest) {
       }
     }
     return NextResponse.json({ error: "فشل التشفير" }, { status: 500 })
-  }
-
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const { data: conv, error: convErr } = await supabase

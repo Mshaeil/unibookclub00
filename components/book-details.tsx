@@ -396,7 +396,7 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
   async function handleShare() {
     const shareUrl = typeof window !== "undefined" ? window.location.href : ""
     const shareTitle = listing.title
-    const shareText = `${t("شاهد إعلان الكتاب:", "Check out this book listing:")} ${listing.title}`
+    const shareText = `${t("شاهد هذا العرض (كتاب/ملخص):", "Check out this book or summary:")} ${listing.title}`
 
     try {
       if (navigator.share) {
@@ -410,7 +410,7 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
 
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareUrl)
-        window.alert(t("تم نسخ رابط الإعلان", "Listing link copied"))
+        window.alert(t("تم نسخ رابط العرض", "Link copied"))
         return
       }
 
@@ -944,12 +944,12 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
 
         <section className="mt-12">
           <h2 className="text-2xl font-bold mb-4">
-            {t("إعلانات مشابهة", "Similar listings")}
+            {t("عروض مشابهة (كتب وملخصات)", "Similar books & summaries")}
           </h2>
           {relatedListings.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
-                {t("لا توجد إعلانات مشابهة حالياً", "No similar listings yet")}
+                {t("لا توجد عروض مشابهة حالياً", "No similar items yet")}
               </CardContent>
             </Card>
           ) : (

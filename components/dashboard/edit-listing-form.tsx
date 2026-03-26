@@ -271,7 +271,7 @@ export function EditListingForm({
       router.push("/dashboard")
       router.refresh()
     } catch {
-      setError("فشل حذف الإعلان")
+      setError("فشل حذف العرض")
       setDeleting(false)
     }
   }
@@ -283,7 +283,7 @@ export function EditListingForm({
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <h2 className="text-xl font-bold mb-2">تم تحديث الإعلان بنجاح!</h2>
+          <h2 className="text-xl font-bold mb-2">تم تحديث عرضك بنجاح!</h2>
         </CardContent>
       </Card>
     )
@@ -302,7 +302,7 @@ export function EditListingForm({
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div>
-            <Label className="text-base font-medium">صور الإعلان *</Label>
+            <Label className="text-base font-medium">صور الكتاب أو الملخص *</Label>
             <p className="text-xs text-muted-foreground mt-1">
               صور مطلوبة. مرفق اختياري (PDF، Word، عرض، ZIP…) — ليس شرطاً للنشر.
             </p>
@@ -673,9 +673,9 @@ export function EditListingForm({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>حذف الإعلان؟</AlertDialogTitle>
+              <AlertDialogTitle>حذف هذا العرض؟</AlertDialogTitle>
               <AlertDialogDescription>
-                هل أنت متأكد من حذف هذا الإعلان؟ لا يمكن التراجع عن هذا الإجراء.
+                هل أنت متأكد من حذف عرض الكتاب أو الملخص؟ لا يمكن التراجع.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="gap-2">

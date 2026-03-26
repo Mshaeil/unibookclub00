@@ -22,7 +22,9 @@ export function HowItWorks() {
             {language === "ar" ? "كيف تعمل المنصة؟" : "How Does the Platform Work?"}
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            {language === "ar" ? "خطوات بسيطة للبدء في البيع أو الشراء" : "Simple steps to start buying or selling"}
+            {language === "ar"
+              ? "خطوات بسيطة لبيع أو شراء الكتب والملخصات الجامعية"
+              : "Simple steps to buy or sell university books and summaries"}
           </p>
         </div>
 
@@ -57,9 +59,15 @@ export function HowItWorks() {
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
                     <BookPlus className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-foreground">{language === "ar" ? "أضف كتابك" : "Add your book"}</span>
+                    <span className="font-medium text-foreground">
+                      {language === "ar" ? "أضف كتابك أو ملخصك" : "Add your book or summary"}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{language === "ar" ? "صور واضحة ومعلومات دقيقة عن الكتاب" : "Clear photos and accurate details"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "ar"
+                      ? "صور واضحة ونوع العنصر (كتاب أصلي، ملخص، ملزمة…) ومعلومات دقيقة"
+                      : "Clear photos, item type (book, summary, notes…), and accurate details"}
+                  </p>
                 </div>
               </div>
 
@@ -72,7 +80,11 @@ export function HowItWorks() {
                     <ClipboardCheck className="h-4 w-4 text-primary" />
                     <span className="font-medium text-foreground">{language === "ar" ? "انتظر المراجعة" : "Wait for review"}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{language === "ar" ? "نراجع الإعلان خلال 24 ساعة" : "Listing review within 24 hours"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "ar"
+                      ? "نراجع عرض الكتاب أو الملخص خلال 24 ساعة"
+                      : "We review your book or summary listing within 24 hours"}
+                  </p>
                 </div>
               </div>
 
@@ -87,8 +99,8 @@ export function HowItWorks() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {language === "ar"
-                      ? "بعد البيع من لوحة التحكم سجّل بيانات المشتري كما في حسابه. يمكنك إظهار سعر قبل وبعد الخصم في الإعلان."
-                      : "After the sale, record the buyer from your dashboard as on their profile. You can show original and discounted prices on the listing."}
+                      ? "بعد البيع من لوحة التحكم سجّل بيانات المشتري كما في حسابه. يمكنك إظهار سعر قبل وبعد الخصم في عرض الكتاب أو الملخص."
+                      : "After the sale, record the buyer from your dashboard as on their profile. You can show original and discounted prices on your listing."}
                   </p>
                 </div>
               </div>
@@ -112,9 +124,15 @@ export function HowItWorks() {
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
                     <Building2 className="h-4 w-4 text-secondary" />
-                    <span className="font-medium text-foreground">اختر كليتك</span>
+                    <span className="font-medium text-foreground">
+                      {language === "ar" ? "اختر كليتك" : "Pick your faculty"}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">فلتر حسب الكلية والتخصص</p>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "ar"
+                      ? "فلتر عروض الكتب والملخصات حسب الكلية والتخصص"
+                      : "Filter books and summaries by faculty and major"}
+                  </p>
                 </div>
               </div>
 
@@ -125,9 +143,15 @@ export function HowItWorks() {
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
                     <Search className="h-4 w-4 text-secondary" />
-                    <span className="font-medium text-foreground">ابحث عن المادة</span>
+                    <span className="font-medium text-foreground">
+                      {language === "ar" ? "ابحث عن المادة" : "Find your course"}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">استخدم الفلاتر الذكية للعثور على كتابك</p>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "ar"
+                      ? "استخدم البحث والفلاتر للعثور على الكتاب أو الملخص المناسب"
+                      : "Use search and filters to find the right book or summary"}
+                  </p>
                 </div>
               </div>
 
@@ -138,9 +162,15 @@ export function HowItWorks() {
                 <div className="flex-1 pt-1">
                   <div className="flex items-center gap-2 mb-1">
                     <MessageSquare className="h-4 w-4 text-secondary" />
-                    <span className="font-medium text-foreground">تواصل مع البائع</span>
+                    <span className="font-medium text-foreground">
+                      {language === "ar" ? "تواصل مع البائع" : "Contact the seller"}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">عبر واتساب أو المحادثة الداخلية</p>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "ar"
+                      ? "واتساب أو المحادثة داخل المنصة لاستكمال شراء الكتاب أو الملخص"
+                      : "WhatsApp or in-app chat to complete your purchase"}
+                  </p>
                 </div>
               </div>
 
@@ -157,8 +187,8 @@ export function HowItWorks() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {language === "ar"
-                      ? "تظهر مشترياتك عندما يطابق رقمك ما سجّله البائع. بعد تقييم البائع يمكنك تحميل أي ملف PDF مرفق بالإعلان من «مشترياتك»."
-                      : "Purchases appear when your profile phone matches what the seller entered. After you rate the seller, you can download any PDF from «Your purchases»."}
+                      ? "تظهر مشترياتك عندما يطابق رقمك ما سجّله البائع. بعد التقييم يمكنك تحميل أي ملف مرفق بعرض الكتاب أو الملخص من «مشترياتك»."
+                      : "Purchases appear when your profile phone matches what the seller entered. After you rate the seller, you can download attachments from «Your purchases»."}
                   </p>
                 </div>
               </div>
@@ -168,31 +198,43 @@ export function HowItWorks() {
 
         {/* Important Notes */}
         <div className="mt-8 bg-primary/5 border border-primary/10 rounded-xl p-6">
-          <h4 className="font-semibold text-foreground mb-3">معلومات مهمة:</h4>
+          <h4 className="font-semibold text-foreground mb-3">
+            {language === "ar" ? "معلومات مهمة:" : "Good to know:"}
+          </h4>
           <ul className="grid gap-2 md:grid-cols-2 text-sm text-muted-foreground">
             <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              المنصة حصرية لطلاب جامعة العلوم التطبيقية
+              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+              {language === "ar"
+                ? "المنصة مخصّصة لطلاب جامعة العلوم التطبيقية — للكتب والملخصات الجامعية"
+                : "For ASU students — university books and summaries"}
             </li>
             <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              التسليم يتم داخل الجامعة أو حسب اتفاق الطرفين
+              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+              {language === "ar"
+                ? "التسليم داخل الجامعة أو حسب اتفاقك مع البائع/المشتري"
+                : "Handoff on campus or as you agree with the other party"}
             </li>
             <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              لا تتقاضى المنصة أي عمولة
+              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+              {language === "ar" ? "لا عمولة على المنصة" : "No platform commission"}
             </li>
             <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              الدفع يتم مباشرة بين البائع والمشتري
+              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+              {language === "ar"
+                ? "الدفع مباشرة بين البائع والمشتري"
+                : "Payment is directly between buyer and seller"}
             </li>
             <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              أرقام التواصل تُنسَّق تلقائياً داخل المنصة لمطابقة المشتريات مع البائع
+              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+              {language === "ar"
+                ? "تنسيق أرقام التواصل تلقائياً لمطابقة «مشترياتك» مع ما سجّله البائع"
+                : "Phone numbers are normalized to match purchases with seller records"}
             </li>
             <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              تحميل الملفات PDF للمشتري بعد إتمام البيع والتقييم فقط
+              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+              {language === "ar"
+                ? "تحميل المرفقات (مثل PDF) بعد إتمام البيع والتقييم فقط"
+                : "Download attachments (e.g. PDF) only after sale and rating"}
             </li>
           </ul>
         </div>

@@ -37,8 +37,8 @@ export function HowItWorksBody() {
         </h1>
         <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
           {t(
-            "خطوات بسيطة للبدء في بيع أو شراء كتبك الجامعية",
-            "Simple steps to start selling or buying your university books",
+            "خطوات بسيطة لبيع أو شراء الكتب الجامعية والملخصات",
+            "Simple steps to buy or sell university books and summaries",
           )}
         </p>
       </div>
@@ -65,18 +65,18 @@ export function HowItWorksBody() {
             },
             {
               icon: <Camera className="h-7 w-7 text-primary" />,
-              title: t("أضف كتابك", "List your book"),
+              title: t("أضف كتابك أو ملخصك", "List your book or summary"),
               body: t(
-                "صوّر كتابك من عدة زوايا، أضف المعلومات المطلوبة مثل المادة والحالة والسعر",
-                "Take photos from several angles and add details like course, condition, and price",
+                "صوّر النسخة من عدة زوايا، حدّد نوع المحتوى (كتاب، ملخص، ملزمة…)، المادة، الحالة، والسعر",
+                "Photograph your item, set type (book, summary, notes…), course, condition, and price",
               ),
             },
             {
               icon: <ClipboardCheck className="h-7 w-7 text-primary" />,
               title: t("انتظر المراجعة", "Wait for review"),
               body: t(
-                "سنراجع إعلانك للتأكد من مطابقته للمعايير. عادةً يستغرق الأمر أقل من 24 ساعة",
-                "We will review your listing to ensure it meets our guidelines — usually within 24 hours",
+                "نراجع عرض الكتاب أو الملخص للتأكد من المطابقة — عادةً خلال 24 ساعة",
+                "We review your book or summary listing — usually within 24 hours",
               ),
             },
             {
@@ -121,16 +121,16 @@ export function HowItWorksBody() {
               icon: <Building2 className="h-7 w-7 text-secondary" />,
               title: t("اختر كليتك", "Pick your faculty"),
               body: t(
-                "استخدم الفلاتر لتحديد كليتك وتخصصك لعرض الكتب المناسبة لك",
-                "Use filters to choose your faculty and major to see relevant books",
+                "استخدم الفلاتر لعرض الكتب والملخصات المناسبة لتخصصك",
+                "Use filters to see books and summaries for your major",
               ),
             },
             {
               icon: <Search className="h-7 w-7 text-secondary" />,
-              title: t("ابحث عن كتابك", "Find your book"),
+              title: t("ابحث عن كتابك أو ملخصك", "Find your book or summary"),
               body: t(
-                "استخدم البحث أو تصفح الكتب حسب المادة. قارن الأسعار والحالات",
-                "Search or browse by course — compare prices and conditions",
+                "ابحث أو تصفّح حسب المادة وقارن الأسعار بين الكتب والملخصات",
+                "Search or browse by course — compare prices for books and summaries",
               ),
             },
             {
@@ -143,10 +143,10 @@ export function HowItWorksBody() {
             },
             {
               icon: <MapPin className="h-7 w-7 text-secondary" />,
-              title: t("استلم الكتاب", "Pick up the book"),
+              title: t("استلم نسختك", "Pick up your copy"),
               body: t(
-                "اتفق على موعد ومكان مناسب. عاين الكتاب وادفع عند الاستلام",
-                "Agree on a safe time and place, inspect the book, and pay on delivery",
+                "اتفق على موعد ومكان. عاين الكتاب أو الملخص وادفع عند الاستلام",
+                "Agree on time and place, inspect the book or summary, pay on delivery",
               ),
             },
           ].map((step, i) => (
@@ -181,19 +181,19 @@ export function HowItWorksBody() {
               "Meet buyers or sellers on campus in a public place",
             ),
             t(
-              "عاين الكتاب جيداً قبل الدفع للتأكد من حالته",
-              "Inspect the book carefully before paying",
+              "عاين الكتاب أو الملخص جيداً قبل الدفع",
+              "Inspect the book or summary carefully before paying",
             ),
             t(
               "ادفع نقداً عند الاستلام - لا تحوّل أموالاً مسبقاً",
               "Pay cash on delivery — do not send money in advance",
             ),
             t(
-              "تحقق من تطابق الكتاب مع الوصف والصور المعروضة",
-              "Make sure the book matches the description and photos",
+              "تحقق من تطابق النسخة مع الوصف والصور (كتاب أو ملخص)",
+              "Make sure the item matches the description and photos",
             ),
             t(
-              "أبلغ عن أي سلوك مشبوه أو إعلانات مضللة",
+              "أبلغ عن أي سلوك مشبوه أو عروض مضللة",
               "Report suspicious behaviour or misleading listings",
             ),
             t("تعامل مع حسابات موثقة قدر الإمكان", "Prefer verified accounts when possible"),
@@ -214,12 +214,12 @@ export function HowItWorksBody() {
           <Button size="lg" className="gap-2 px-8" asChild>
             <Link href="/browse">
               <Search className="h-5 w-5" />
-              {t("ابحث عن كتاب", "Find a book")}
+              {t("تصفح الكتب والملخصات", "Browse books & summaries")}
             </Link>
           </Button>
           <Button size="lg" variant="outline" className="gap-2 px-8" asChild>
             <Link href="/dashboard/listings/new">
-              {t("أضف كتابك للبيع", "List your book for sale")}
+              {t("اعرض كتاباً أو ملخصاً", "List a book or summary")}
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

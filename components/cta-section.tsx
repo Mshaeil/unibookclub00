@@ -19,14 +19,18 @@ export function CTASection() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center space-y-8">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">
-              {language === "ar" ? "عندك كتب ما تحتاجها؟" : "Got books you no longer need?"}
+              {language === "ar"
+                ? "عندك كتب أو ملخصات ما تحتاجها؟"
+                : "Got books or summaries you no longer need?"}
               <br />
-              <span className="text-primary-foreground/80">{language === "ar" ? "حولها إلى فلوس!" : "Turn them into cash!"}</span>
+              <span className="text-primary-foreground/80">
+                {language === "ar" ? "اعرضها لزملائك واستفد!" : "List them for peers and earn!"}
+              </span>
             </h2>
             <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto text-pretty">
               {language === "ar"
-                ? "انضم لمجتمع طلاب جامعة العلوم التطبيقية وابدأ ببيع كتبك اليوم. العملية سهلة وآمنة ومجانية تماماً."
-                : "Join Applied Science University students and start selling your books today. It's easy, safe, and completely free."}
+                ? "منصة تركّز على الكتب الجامعية والملخصات: انضم لطلاب جامعة العلوم التطبيقية وابدأ البيع اليوم — سهل، آمن، وبدون عمولة."
+                : "Focused on university books and summaries: join ASU students and start selling today — easy, safe, and commission-free."}
             </p>
 
             {/* Features */}
@@ -37,7 +41,9 @@ export function CTASection() {
                 </div>
                 <h3 className="font-semibold text-lg">{language === "ar" ? "سريع وسهل" : "Fast and easy"}</h3>
                 <p className="text-sm text-primary-foreground/70">
-                  {language === "ar" ? "أضف كتابك في أقل من دقيقتين بخطوات بسيطة" : "List your book in under two minutes"}
+                  {language === "ar"
+                    ? "أضف كتابك أو ملخصك في دقائق بخطوات بسيطة"
+                    : "List a book or summary in minutes with simple steps"}
                 </p>
               </div>
               <div className="text-center space-y-3 p-6 rounded-2xl bg-primary-foreground/5 backdrop-blur-sm">

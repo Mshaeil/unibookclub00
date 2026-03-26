@@ -73,7 +73,9 @@ export function FacultiesSection() {
             {language === "ar" ? "تصفح حسب كليتك" : "Browse by your faculty"}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-pretty">
-            {language === "ar" ? "اختر كليتك للوصول السريع إلى الكتب المتاحة في تخصصك" : "Pick your faculty for quick access to relevant books"}
+            {language === "ar"
+              ? "اختر كليتك للوصول السريع إلى الكتب والملخصات المتاحة في تخصصك"
+              : "Pick your faculty for books and summaries in your major"}
           </p>
         </div>
 

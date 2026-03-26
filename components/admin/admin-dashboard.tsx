@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -15,8 +16,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch"
 import Link from "next/link"
 import { CheckCircle, ExternalLink, MessageCircle, RefreshCw, ShieldAlert, Trash2, XCircle } from "lucide-react"
-import { AdminSecurityPanel } from "@/components/admin/admin-security-panel"
-import { AdminMessagesPanel } from "@/components/admin/admin-messages-panel"
+
+const AdminSecurityPanel = dynamic(
+  () => import("@/components/admin/admin-security-panel").then((m) => m.AdminSecurityPanel),
+  { loading: () => <p className="p-4 text-sm text-muted-foreground">جاري تحميل الأمان…</p> },
+)
+const AdminMessagesPanel = dynamic(
+  () => import("@/components/admin/admin-messages-panel").then((m) => m.AdminMessagesPanel),
+  { loading: () => <p className="p-4 text-sm text-muted-foreground">جاري تحميل الرسائل…</p> },
+)
 
 type Listing = {
   id: string
@@ -40,6 +48,8 @@ type Listing = {
   course?: { id: string; name: string } | null
 }
 
+type AccountStatus = "active" | "suspended" | "banned"
+
 type User = {
   id: string
   full_name: string | null
@@ -49,6 +59,17 @@ type User = {
   role: "user" | "admin"
   created_at: string
   is_active: boolean
+  account_status: AccountStatus
+}
+
+type SuperAdminRow = {
+  id: string
+  email: string
+  full_name: string
+  role: string
+  is_active: boolean
+  account_status: string
+  created_at: string
 }
 
 type Report = {
@@ -91,6 +112,9 @@ type Props = {
   listings: Listing[]
   platformStats: PlatformStats
   users: User[]
+  viewerUserId: string
+  isSuperAdmin?: boolean
+  superAdmins?: SuperAdminRow[]
   reports: Report[]
   sales: {
     id: string
@@ -144,10 +168,19 @@ const availabilityLabel: Record<string, string> = {
   sold: "مباع (توفر)",
 }
 
+const accountStatusLabel: Record<AccountStatus, string> = {
+  active: "نشط",
+  suspended: "معلّق",
+  banned: "محظور",
+}
+
 export function AdminDashboard({
   listings: initialListings,
   platformStats,
   users: initialUsers,
+  viewerUserId,
+  isSuperAdmin = false,
+  superAdmins: initialSuperAdmins = [],
   reports: initialReports,
   sales: initialSales,
   sellerReviews: initialSellerReviews,
@@ -160,6 +193,7 @@ export function AdminDashboard({
 
   const [listings, setListings] = useState<Listing[]>(initialListings)
   const [users, setUsers] = useState<User[]>(initialUsers)
+  const [superAdmins, setSuperAdmins] = useState<SuperAdminRow[]>(initialSuperAdmins)
   const [reports, setReports] = useState<Report[]>(initialReports)
   const [sales] = useState<Props["sales"]>(initialSales)
   const [sellerReviews] = useState<Props["sellerReviews"]>(initialSellerReviews)
@@ -187,6 +221,10 @@ export function AdminDashboard({
   }, [initialUsers])
 
   useEffect(() => {
+    setSuperAdmins(initialSuperAdmins)
+  }, [initialSuperAdmins])
+
+  useEffect(() => {
     setReports(initialReports)
   }, [initialReports])
 
@@ -204,7 +242,7 @@ export function AdminDashboard({
 
   useEffect(() => {
     if (!autoRefresh) return
-    const id = window.setInterval(() => router.refresh(), 30_000)
+    const id = window.setInterval(() => router.refresh(), 90_000)
     return () => window.clearInterval(id)
   }, [autoRefresh, router])
 
@@ -346,19 +384,35 @@ export function AdminDashboard({
     router.refresh()
   }
 
-  async function toggleUserActive(userId: string, nextActive: boolean) {
+  async function setUserAccountStatus(userId: string, status: AccountStatus) {
     setError(null)
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ is_active: nextActive })
-      .eq("id", userId)
+    const { error: rpcError } = await supabase.rpc("admin_set_account_status", {
+      p_target_user_id: userId,
+      p_status: status,
+    })
 
-    if (updateError) {
-      setError(`فشل تحديث حالة المستخدم: ${updateError.message}`)
+    if (rpcError) {
+      setError(
+        `فشل تحديث الحساب: ${rpcError.message}. نفّذ scripts/016_account_status_super_admin.sql في Supabase (SQL Editor) إن لم تكن فعلت.`,
+      )
       return
     }
 
-    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_active: nextActive } : u)))
+    const isActive = status === "active"
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId ? { ...u, is_active: isActive, account_status: status } : u,
+      ),
+    )
+    if (isSuperAdmin) {
+      setSuperAdmins((prev) =>
+        prev.map((a) =>
+          a.id === userId
+            ? { ...a, is_active: isActive, account_status: status }
+            : a,
+        ),
+      )
+    }
     router.refresh()
   }
 
@@ -542,7 +596,7 @@ export function AdminDashboard({
             <CardTitle className="text-lg">ملخص المنصة والرئيسية</CardTitle>
             <CardDescription>
               أرقام تطابق ما يظهر للزوار: المعتمد = المعروض في التصفح والرئيسية (ضمن الـ 12 الأحدث). التحديث التلقائي يعيد
-              جلب البيانات من السيرفر كل 30 ثانية (وعند العودة للتبويب).
+              جلب البيانات من السيرفر كل 90 ثانية (وعند العودة للتبويب) — أخف على السيرفر.
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-4">
@@ -553,7 +607,7 @@ export function AdminDashboard({
             <div className="flex items-center gap-2">
               <Switch id="admin-auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} />
               <Label htmlFor="admin-auto-refresh" className="text-sm font-normal">
-                تحديث تلقائي / 30 ث
+                تحديث تلقائي / 90 ث
               </Label>
             </div>
           </div>
@@ -596,6 +650,11 @@ export function AdminDashboard({
           <TabsTrigger value="users" className="flex-none">
             المستخدمون
           </TabsTrigger>
+          {isSuperAdmin ? (
+            <TabsTrigger value="super-admins" className="flex-none border border-amber-500/40 bg-amber-500/10">
+              مسؤول أعلى
+            </TabsTrigger>
+          ) : null}
           <TabsTrigger value="security" className="flex-none">
             الأمن
           </TabsTrigger>
@@ -794,19 +853,69 @@ export function AdminDashboard({
                       </TableCell>
                       <TableCell>{user.phone || "-"}</TableCell>
                       <TableCell>{user.whatsapp || "-"}</TableCell>
-                      <TableCell>{user.is_active ? "نشط" : "غير نشط"}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            user.account_status === "active" ? "outline" : "destructive"
+                          }
+                          className="whitespace-nowrap"
+                        >
+                          {accountStatusLabel[user.account_status]}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString("ar-JO")}</TableCell>
                       <TableCell>
-                        {user.role === "admin" ? (
-                          <span className="text-xs text-muted-foreground">لا يمكن تعليق المدير</span>
+                        {user.id === viewerUserId ? (
+                          <span className="text-xs text-muted-foreground">حسابك الحالي</span>
+                        ) : user.role === "admin" && !isSuperAdmin ? (
+                          <span className="text-xs text-muted-foreground">
+                            تعديل المدراء من تبويب «مسؤول أعلى» فقط
+                          </span>
                         ) : (
-                          <Button
-                            size="sm"
-                            variant={user.is_active ? "destructive" : "outline"}
-                            onClick={() => toggleUserActive(user.id, !user.is_active)}
-                          >
-                            {user.is_active ? "تعليق الحساب" : "إعادة تفعيل"}
-                          </Button>
+                          <div className="flex flex-wrap gap-1 max-w-[220px]">
+                            {user.account_status !== "active" ? (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-8"
+                                onClick={() => void setUserAccountStatus(user.id, "active")}
+                              >
+                                تفعيل
+                              </Button>
+                            ) : null}
+                            {user.account_status !== "suspended" ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8"
+                                onClick={() => {
+                                  if (window.confirm("تعليق الحساب مؤقتاً؟")) {
+                                    void setUserAccountStatus(user.id, "suspended")
+                                  }
+                                }}
+                              >
+                                تعليق
+                              </Button>
+                            ) : null}
+                            {user.account_status !== "banned" ? (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-8"
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      "حظر الحساب؟ يمكن إعادة التفعيل لاحقاً من نفس الجدول.",
+                                    )
+                                  ) {
+                                    void setUserAccountStatus(user.id, "banned")
+                                  }
+                                }}
+                              >
+                                حظر
+                              </Button>
+                            ) : null}
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -816,6 +925,110 @@ export function AdminDashboard({
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isSuperAdmin ? (
+          <TabsContent value="super-admins">
+            <Card className="border-amber-500/30">
+              <CardHeader>
+                <CardTitle>المسؤول الأعلى — المدراء المسجّلون</CardTitle>
+                <CardDescription>
+                  يظهر هذا القسم فقط عند تسجيل الدخول بالبريد المعرّف في{" "}
+                  <code className="rounded bg-muted px-1">SUPER_ADMIN_EMAIL</code>. يمكنك تعليق أو حظر
+                  حسابات المدراء أو إعادة تفعيلها (لا يمكن تعديل حسابك من هنا).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>البريد</TableHead>
+                      <TableHead>الاسم</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>تاريخ الإنشاء</TableHead>
+                      <TableHead>إجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {superAdmins.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="max-w-[200px] truncate text-sm">{row.email}</TableCell>
+                        <TableCell>{row.full_name || "—"}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              (row.account_status || "active") === "active"
+                                ? "outline"
+                                : "destructive"
+                            }
+                          >
+                            {accountStatusLabel[
+                              (row.account_status === "banned"
+                                ? "banned"
+                                : row.account_status === "suspended"
+                                  ? "suspended"
+                                  : "active") as AccountStatus
+                            ]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(row.created_at).toLocaleDateString("ar-JO")}
+                        </TableCell>
+                        <TableCell>
+                          {row.id === viewerUserId ? (
+                            <span className="text-xs text-muted-foreground">حسابك</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {(row.account_status || "active") !== "active" ? (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="h-8"
+                                  onClick={() =>
+                                    void setUserAccountStatus(row.id, "active")
+                                  }
+                                >
+                                  تفعيل
+                                </Button>
+                              ) : null}
+                              {(row.account_status || "active") !== "suspended" ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8"
+                                  onClick={() => {
+                                    if (window.confirm("تعليق هذا المدير؟")) {
+                                      void setUserAccountStatus(row.id, "suspended")
+                                    }
+                                  }}
+                                >
+                                  تعليق
+                                </Button>
+                              ) : null}
+                              {(row.account_status || "active") !== "banned" ? (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-8"
+                                  onClick={() => {
+                                    if (window.confirm("حظر هذا المدير؟")) {
+                                      void setUserAccountStatus(row.id, "banned")
+                                    }
+                                  }}
+                                >
+                                  حظر
+                                </Button>
+                              ) : null}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="security">
           <AdminSecurityPanel />

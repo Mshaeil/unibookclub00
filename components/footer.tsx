@@ -25,8 +25,8 @@ export function Footer() {
             </Link>
             <p className="text-sidebar-foreground/70 max-w-md text-sm leading-relaxed">
               {language === "ar"
-                ? "منصة حصرية لطلاب جامعة العلوم التطبيقية لبيع وشراء الكتب الجامعية. نهدف لتسهيل الوصول إلى المراجع الدراسية بأسعار مناسبة."
-                : "An exclusive platform for Applied Science University students to buy and sell academic books."}
+                ? "منصة لطلاب جامعة العلوم التطبيقية تركّز على بيع وشراء الكتب الجامعية والملخصات — تصفّح حسب الكلية والمادة بسهولة."
+                : "For ASU students: buy and sell university books and summaries — browse by faculty and course."}
             </p>
             <p className="text-sm text-sidebar-foreground/70">
               {language === "ar" ? "البريد الرسمي:" : "Official email:"}{" "}
@@ -44,13 +44,13 @@ export function Footer() {
                 {language === "ar" ? "الرئيسية" : "Home"}
               </Link>
               <Link href="/browse" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                {language === "ar" ? "تصفح الكتب" : "Browse books"}
+                {language === "ar" ? "تصفح الكتب والملخصات" : "Browse books & summaries"}
               </Link>
               <Link href="#faculties" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
                 {language === "ar" ? "الكليات" : "Faculties"}
               </Link>
               <Link href="/dashboard/listings/new" className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                {language === "ar" ? "أضف كتابك" : "Add your book"}
+                {language === "ar" ? "اعرض كتاباً أو ملخصاً" : "List book or summary"}
               </Link>
             </nav>
           </div>

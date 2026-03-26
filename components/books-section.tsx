@@ -51,14 +51,18 @@ export function BooksSection({ listings }: Props) {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
             <BookOpen className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-primary">
-              {availableCount} {language === "ar" ? "كتاب متاح" : "Available books"}
+              {language === "ar"
+                ? `${availableCount} متاح من كتب وملخصات`
+                : `${availableCount} books & summaries available`}
             </span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
-            {language === "ar" ? "اعثر على كتابك" : "Find your book"}
+            {language === "ar" ? "اعثر على كتابك أو ملخصك" : "Find your book or summary"}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-pretty">
-            {language === "ar" ? "تصفح الكتب المتاحة حسب الكلية والتخصص والمادة" : "Browse books by faculty, major, and course"}
+            {language === "ar"
+              ? "تصفح عروض الكتب والملخصات حسب الكلية والتخصص والمادة"
+              : "Browse books and summaries by faculty, major, and course"}
           </p>
         </div>
 
@@ -127,7 +131,7 @@ export function BooksSection({ listings }: Props) {
             <div className="text-center mt-12">
               <Button variant="outline" size="lg" asChild className="gap-2">
                 <Link href="/browse">
-                  {language === "ar" ? "تصفح كل الكتب" : "Browse all books"}
+                  {language === "ar" ? "تصفح كل الكتب والملخصات" : "Browse all books & summaries"}
                   <ChevronLeft className="h-4 w-4" />
                 </Link>
               </Button>
@@ -139,13 +143,19 @@ export function BooksSection({ listings }: Props) {
               <BookOpen className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              {language === "ar" ? "لا توجد كتب متاحة حالياً" : "No books available right now"}
+              {language === "ar"
+                ? "لا توجد كتب أو ملخصات متاحة حالياً"
+                : "No books or summaries available right now"}
             </h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              {language === "ar" ? "تصفح الصفحة لاحقاً أو أضف كتبك للبيع" : "Check back later or add your books for sale"}
+              {language === "ar"
+                ? "عد لاحقاً أو اعرض كتابك أو ملخصك للبيع"
+                : "Check back later or list your book or summary"}
             </p>
             <Button asChild>
-              <Link href="/browse">{language === "ar" ? "تصفح الكتب" : "Browse books"}</Link>
+              <Link href="/browse">
+                {language === "ar" ? "تصفح الكتب والملخصات" : "Browse books & summaries"}
+              </Link>
             </Button>
           </div>
         )}

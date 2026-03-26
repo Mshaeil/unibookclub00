@@ -11,13 +11,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   Copy,
   Hash,
+  ImageIcon,
   Loader2,
   Lock,
   MessageCircle,
+  Paperclip,
   Send,
   Smile,
   Store,
   User,
+  X,
 } from "lucide-react"
 
 type ConvRow = {
@@ -31,11 +34,29 @@ type ConvRow = {
   seller: { id: string; full_name: string | null } | null
 }
 
+type MsgAttachment = {
+  pathname: string
+  name: string
+  mime: string
+}
+
 type MsgRow = {
   id: string
   body: string
+  attachments?: MsgAttachment[]
   created_at: string
   sender_id: string
+}
+
+const MAX_MESSAGE_ATTACHMENTS = 6
+
+function isProbablyImage(att: MsgAttachment) {
+  if (att.mime.startsWith("image/")) return true
+  return /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(att.name)
+}
+
+function fileUrl(pathname: string) {
+  return `/api/file?pathname=${encodeURIComponent(pathname)}`
 }
 
 const QUICK_EMOJIS = [
@@ -70,6 +91,8 @@ export default function DashboardMessages({
   const [activeId, setActiveId] = useState<string | null>(null)
   const [messages, setMessages] = useState<MsgRow[]>([])
   const [draft, setDraft] = useState("")
+  const [attachments, setAttachments] = useState<MsgAttachment[]>([])
+  const [uploadingFiles, setUploadingFiles] = useState(false)
   const [loadingList, setLoadingList] = useState(true)
   const [loadingThread, setLoadingThread] = useState(false)
   const [sending, setSending] = useState(false)
@@ -79,6 +102,7 @@ export default function DashboardMessages({
   const bottomRef = useRef<HTMLDivElement>(null)
   const listScrollRef = useRef<HTMLDivElement>(null)
   const threadScrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const loadConversations = useCallback(async () => {
@@ -125,7 +149,10 @@ export default function DashboardMessages({
       `/api/messages?conversation_id=${encodeURIComponent(conversationId)}`,
       { credentials: "same-origin" },
     )
-    const data = (await res.json().catch(() => ({}))) as { messages?: MsgRow[]; error?: string }
+    const data = (await res.json().catch(() => ({}))) as {
+      messages?: MsgRow[]
+      error?: string
+    }
     if (!res.ok) {
       throw new Error(data.error || res.statusText || "فشل تحميل الرسائل")
     }
@@ -242,16 +269,60 @@ export default function DashboardMessages({
     bottomRef.current?.scrollIntoView({ block: "end", behavior: "auto" })
   }, [messages.length, activeId])
 
+  async function uploadAttachments(files: FileList | null) {
+    if (!files?.length) return
+    const list = Array.from(files).slice(0, MAX_MESSAGE_ATTACHMENTS - attachments.length)
+    if (list.length === 0) return
+    setUploadingFiles(true)
+    setError(null)
+    try {
+      const next: MsgAttachment[] = [...attachments]
+      for (const file of list) {
+        if (next.length >= MAX_MESSAGE_ATTACHMENTS) break
+        const fd = new FormData()
+        fd.append("file", file)
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: fd,
+          credentials: "same-origin",
+        })
+        const data = (await res.json().catch(() => ({}))) as {
+          pathname?: string
+          error?: string
+        }
+        if (!res.ok || !data.pathname) {
+          throw new Error(data.error || "فشل رفع الملف")
+        }
+        next.push({
+          pathname: data.pathname,
+          name: file.name,
+          mime: file.type || "",
+        })
+      }
+      setAttachments(next)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "فشل رفع المرفقات")
+    } finally {
+      setUploadingFiles(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
   async function sendMessage() {
     const text = draft.trim()
-    if (!activeId || !text || sending) return
+    if (!activeId || sending || uploadingFiles) return
+    if (!text && attachments.length === 0) return
     setSending(true)
     setError(null)
     const res = await fetch("/api/messages", {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversation_id: activeId, body: text }),
+      body: JSON.stringify({
+        conversation_id: activeId,
+        body: text,
+        attachments: attachments.length ? attachments : undefined,
+      }),
     })
     const data = (await res.json().catch(() => ({}))) as { error?: string; hint?: string }
     setSending(false)
@@ -260,6 +331,7 @@ export default function DashboardMessages({
       return
     }
     setDraft("")
+    setAttachments([])
     void loadConversations()
     void refreshThreadQuiet(activeId)
   }
@@ -295,7 +367,7 @@ export default function DashboardMessages({
         >
           <Lock className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
           <span>
-            الرسائل <strong>مشفّرة بين الطرفين</strong> (End-to-End) — خاصة بك وبين الطرف الآخر فقط.
+            الرسائل <strong>مشفّرة على الخادم</strong> — يمكن إرفاق صور أو ملفات (بعد الرفع) ضمن نفس الرسالة المشفّرة.
           </span>
         </div>
       </div>
@@ -440,7 +512,49 @@ export default function DashboardMessages({
                                 : "rounded-bl-md bg-muted text-foreground"
                             }`}
                           >
-                            <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                            {m.body ? (
+                              <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                            ) : null}
+                            {m.attachments && m.attachments.length > 0 ? (
+                              <div
+                                className={`space-y-2 ${m.body ? "mt-2" : ""}`}
+                              >
+                                {m.attachments.map((att) =>
+                                  isProbablyImage(att) ? (
+                                    <a
+                                      key={att.pathname}
+                                      href={fileUrl(att.pathname)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block overflow-hidden rounded-lg border border-white/20"
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={fileUrl(att.pathname)}
+                                        alt={att.name}
+                                        className="max-h-48 w-full object-contain bg-black/10"
+                                        loading="lazy"
+                                      />
+                                    </a>
+                                  ) : (
+                                    <a
+                                      key={att.pathname}
+                                      href={fileUrl(att.pathname)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium underline-offset-2 hover:underline ${
+                                        mine
+                                          ? "border-primary-foreground/30 bg-primary-foreground/10"
+                                          : "border-border bg-background"
+                                      }`}
+                                    >
+                                      <Paperclip className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                                      {att.name}
+                                    </a>
+                                  ),
+                                )}
+                              </div>
+                            ) : null}
                             <p
                               className={`mt-1 text-[10px] opacity-70 ${
                                 mine ? "text-primary-foreground" : ""
@@ -461,7 +575,63 @@ export default function DashboardMessages({
               </div>
 
               <div className="shrink-0 border-t bg-muted/10 p-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.zip,.txt"
+                  onChange={(e) => void uploadAttachments(e.target.files)}
+                />
+                {attachments.length > 0 ? (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {attachments.map((a) => (
+                      <span
+                        key={a.pathname}
+                        className="inline-flex max-w-full items-center gap-1 rounded-md border bg-background px-2 py-1 text-[11px]"
+                      >
+                        {isProbablyImage(a) ? (
+                          <ImageIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        ) : (
+                          <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="truncate">{a.name}</span>
+                        <button
+                          type="button"
+                          className="rounded p-0.5 hover:bg-muted"
+                          aria-label="إزالة"
+                          onClick={() =>
+                            setAttachments((prev) =>
+                              prev.filter((x) => x.pathname !== a.pathname),
+                            )
+                          }
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="flex gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 shrink-0"
+                    aria-label="إرفاق ملف أو صورة"
+                    disabled={
+                      uploadingFiles ||
+                      attachments.length >= MAX_MESSAGE_ATTACHMENTS ||
+                      !activeId
+                    }
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {uploadingFiles ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Paperclip className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -507,7 +677,11 @@ export default function DashboardMessages({
                     size="icon"
                     className="h-10 w-10 shrink-0"
                     onClick={() => void sendMessage()}
-                    disabled={sending || !draft.trim()}
+                    disabled={
+                      sending ||
+                      uploadingFiles ||
+                      (!draft.trim() && attachments.length === 0)
+                    }
                     aria-label="إرسال"
                   >
                     {sending ? (
@@ -517,6 +691,10 @@ export default function DashboardMessages({
                     )}
                   </Button>
                 </div>
+                <p className="mt-1.5 text-[10px] text-muted-foreground px-0.5">
+                  مرفقات: صور (حتى 5 ميجا) أو PDF/Word/PowerPoint/ZIP/نص (حتى 10 ميجا) — حتى{" "}
+                  {MAX_MESSAGE_ATTACHMENTS} ملفات لكل رسالة.
+                </p>
               </div>
             </>
           )}
