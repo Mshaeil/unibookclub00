@@ -28,7 +28,10 @@ GRANT EXECUTE ON FUNCTION public.get_platform_registered_count() TO authenticate
 -- ---------------------------------------------------------------------------
 -- قائمة المستخدمين للأدمن: auth.users مدمج مع profiles
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.admin_list_registered_users()
+-- NOTE: return type can change across versions (e.g. account_status). Drop first to avoid errors.
+DROP FUNCTION IF EXISTS public.admin_list_registered_users();
+
+CREATE FUNCTION public.admin_list_registered_users()
 RETURNS TABLE (
   id uuid,
   full_name text,
@@ -36,6 +39,7 @@ RETURNS TABLE (
   whatsapp text,
   role text,
   is_active boolean,
+  account_status text,
   created_at timestamptz,
   email text
 )
@@ -56,6 +60,7 @@ AS $$
     p.whatsapp::text,
     COALESCE(p.role, 'user')::text AS role,
     COALESCE(p.is_active, true) AS is_active,
+    COALESCE(NULLIF(TRIM(p.account_status), ''), 'active')::text AS account_status,
     COALESCE(p.created_at, u.created_at) AS created_at,
     u.email::text AS email
   FROM auth.users u

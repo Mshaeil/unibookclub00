@@ -2,13 +2,14 @@
 -- Phase 1: Core tables with RLS policies
 
 -- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Supabase standard: use pgcrypto + gen_random_uuid() (more widely available than uuid-ossp)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =====================================================
 -- FACULTIES TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS public.faculties (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name_ar TEXT NOT NULL,
   name_en TEXT,
   icon TEXT,
@@ -20,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.faculties (
 -- MAJORS TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS public.majors (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   faculty_id UUID NOT NULL REFERENCES public.faculties(id) ON DELETE CASCADE,
   name_ar TEXT NOT NULL,
   name_en TEXT,
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS public.majors (
 -- COURSES TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS public.courses (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   major_id UUID NOT NULL REFERENCES public.majors(id) ON DELETE CASCADE,
   code TEXT,
   name_ar TEXT NOT NULL,
@@ -67,7 +68,7 @@ CREATE TYPE listing_availability AS ENUM ('available', 'reserved', 'sold');
 CREATE TYPE listing_item_type AS ENUM ('original', 'notes', 'reference', 'summary');
 
 CREATE TABLE IF NOT EXISTS public.listings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   seller_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
@@ -94,7 +95,7 @@ CREATE TABLE IF NOT EXISTS public.listings (
 -- FAVORITES TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS public.favorites (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -108,7 +109,7 @@ CREATE TYPE report_status AS ENUM ('pending', 'reviewed', 'resolved', 'dismissed
 CREATE TYPE report_reason AS ENUM ('inappropriate', 'spam', 'fake', 'offensive', 'other');
 
 CREATE TABLE IF NOT EXISTS public.reports (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   reporter_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
   reason report_reason NOT NULL,

@@ -5,26 +5,8 @@ ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS buyer_account TEXT;
 -- One sale record per listing
 CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_one_sale_per_listing ON public.sales(listing_id);
 
--- Google OAuth: map "name" from provider into profiles.full_name
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.profiles (id, full_name, phone, whatsapp, role)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data ->> 'full_name', NEW.raw_user_meta_data ->> 'name', ''),
-    COALESCE(NEW.raw_user_meta_data ->> 'phone', null),
-    COALESCE(NEW.raw_user_meta_data ->> 'whatsapp', null),
-    'user'
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$;
+-- NOTE: do not redefine handle_new_user here.
+-- It is maintained in scripts/009_listing_discount_profile_email_rls_fixes.sql to also sync email.
 
 -- Listings: buyers who appear on a sale can open the listing (e.g. to rate seller)
 DROP POLICY IF EXISTS "listings_read_approved" ON public.listings;
