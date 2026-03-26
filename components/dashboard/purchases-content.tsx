@@ -74,8 +74,8 @@ export function PurchasesContent({ sales, reviewedListingIds }: Props) {
         <h1 className="text-2xl font-bold">{t("مشترياتك", "Your purchases")}</h1>
         <p className="text-muted-foreground mt-1">
           {t(
-            "يظهر هنا ما سجّله البائع عندما يطابق رقم التواصل بيانات ملفك. بعد التقييم يمكنك تحميل ملف PDF إن وُجد.",
-            "Purchases appear when the seller’s contact matches your profile. After you rate, you can download any attached PDF.",
+            "يظهر هنا ما سجّله البائع عندما يطابق بريدك أو رقم التواصل بيانات ملفك. بعد التقييم يمكنك تحميل ملف PDF إن وُجد.",
+            "Purchases appear when the seller’s record matches your login email or profile phone. After you rate, you can download any attached PDF.",
           )}
         </p>
       </div>

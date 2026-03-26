@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea"
 import type { ReportReason } from "@/lib/types/database"
 import { useLanguage, useTranslate } from "@/components/language-provider"
 import { discountPercentLabel, isPromoDiscountActive } from "@/lib/utils/listing-discount"
+import { addToCart, readCart } from "@/lib/cart"
 import {
   BookOpen,
   Calendar,
@@ -35,8 +36,8 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  Star,
   Tag,
+  ShoppingCart,
   Truck,
   User,
 } from "lucide-react"
@@ -119,25 +120,34 @@ interface BookDetailsProps {
     isSeller: boolean
     canRateSeller: boolean
   }
+  sellerRating?: { avg: number; count: number }
 }
 
-export function BookDetails({ listing, relatedListings, viewer }: BookDetailsProps) {
+export function BookDetails({ listing, relatedListings, viewer, sellerRating }: BookDetailsProps) {
   const router = useRouter()
   const { language } = useLanguage()
   const t = useTranslate()
   const supabase = useMemo(() => createClient(), [])
   const [currentImage, setCurrentImage] = useState(0)
   const [isWishlisted, setIsWishlisted] = useState(false)
+  const [inCart, setInCart] = useState(false)
   const [reporting, setReporting] = useState(false)
   const [reportDialogOpen, setReportDialogOpen] = useState(false)
   const [reportReason, setReportReason] = useState<ReportReason>("other")
   const [reportDetails, setReportDetails] = useState("")
-  const [ratingValue, setRatingValue] = useState(5)
-  const [ratingComment, setRatingComment] = useState("")
-  const [ratingSubmitting, setRatingSubmitting] = useState(false)
   const availability = listing.availability || "available"
   const showPromoDiscount = isPromoDiscountActive(listing)
   const promoPct = discountPercentLabel(listing)
+
+  useEffect(() => {
+    const items = readCart()
+    setInCart(items.some((i) => i.listingId === listing.id))
+  }, [listing.id])
+
+  function handleAddToCart() {
+    addToCart(listing.id)
+    setInCart(true)
+  }
 
   const conditionLabels = useMemo(
     () => ({
@@ -310,38 +320,6 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
     setReportDetails("")
     router.refresh()
     window.alert(t("تم إرسال التبليغ بنجاح", "Report submitted successfully"))
-  }
-
-  async function handleRateSeller() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      window.alert(t("يرجى تسجيل الدخول أولاً", "Please sign in first"))
-      return
-    }
-    if (!listing.seller?.id || user.id === listing.seller.id) {
-      window.alert(t("لا يمكن تقييم نفسك", "You cannot rate yourself"))
-      return
-    }
-
-    setRatingSubmitting(true)
-    const { error } = await supabase.from("seller_reviews").insert({
-      seller_id: listing.seller.id,
-      reviewer_id: user.id,
-      listing_id: listing.id,
-      rating: ratingValue,
-      comment: ratingComment.trim() || null,
-    })
-    setRatingSubmitting(false)
-    if (error) {
-      window.alert(
-        `${t("فشل حفظ التقييم:", "Failed to save rating:")} ${error.message}`,
-      )
-      return
-    }
-
-    window.alert(t("تم إرسال تقييم البائع بنجاح", "Seller rating submitted"))
-    setRatingComment("")
-    setRatingValue(5)
   }
 
   const waDigits = (
@@ -648,6 +626,16 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
                           {listing.seller?.full_name || t("مستخدم", "User")}
                         </span>
                       </div>
+                      {sellerRating && sellerRating.count > 0 ? (
+                        <div className="mt-1 text-sm text-muted-foreground" dir="ltr">
+                          <span className="font-medium text-foreground">{sellerRating.avg.toFixed(1)}</span> / 5 •{" "}
+                          {sellerRating.count} reviews
+                        </div>
+                      ) : (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {t("لا يوجد تقييمات بعد", "No reviews yet")}
+                        </div>
+                      )}
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span>
                           {listing.seller?.phone ||
@@ -660,71 +648,8 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
               </CardContent>
             </Card>
 
-            {availability === "sold" && viewer?.canRateSeller && (
-              <Card>
-                <CardContent className="p-4 space-y-3">
-                  <h3 className="font-semibold">
-                    {t("تقييم البائع بعد إتمام العملية", "Rate the seller after the sale")}
-                  </h3>
-                  <div className="space-y-2">
-                    <Label htmlFor="rating-stars">{t("عدد النجوم", "Stars")}</Label>
-                    <Select value={String(ratingValue)} onValueChange={(v) => setRatingValue(Number(v))}>
-                      <SelectTrigger id="rating-stars">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">{t("5 نجوم", "5 stars")}</SelectItem>
-                        <SelectItem value="4">{t("4 نجوم", "4 stars")}</SelectItem>
-                        <SelectItem value="3">{t("3 نجوم", "3 stars")}</SelectItem>
-                        <SelectItem value="2">{t("2 نجوم", "2 stars")}</SelectItem>
-                        <SelectItem value="1">{t("1 نجمة", "1 star")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rating-comment">
-                      {t("تقييمك (اختياري)", "Your review (optional)")}
-                    </Label>
-                    <Textarea
-                      id="rating-comment"
-                      value={ratingComment}
-                      onChange={(e) => setRatingComment(e.target.value)}
-                      placeholder={t("شارك تجربتك مع البائع...", "Share your experience with the seller...")}
-                      rows={3}
-                    />
-                  </div>
-                  <Button onClick={handleRateSeller} disabled={ratingSubmitting} className="gap-2">
-                    <Star className="h-4 w-4" />
-                    {ratingSubmitting
-                      ? t("جاري الإرسال...", "Sending...")
-                      : t("إرسال التقييم", "Submit rating")}
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Actions */}
             <div className="flex flex-col gap-3">
-              {availability === "available" && viewer?.isSeller && (
-                <Card>
-                  <CardContent className="p-4 space-y-2">
-                    <h3 className="font-semibold">{t("إتمام البيع", "Complete the sale")}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t(
-                        "بعد أن تتفق مع المشتري وتستلم المبلغ، سجّل بياناته من",
-                        "After you agree with the buyer and receive payment, record their details from",
-                      )}{" "}
-                      <Link href="/dashboard" className="font-medium text-primary underline">
-                        {t("لوحة التحكم → إعلاناتي", "Dashboard → My listings")}
-                      </Link>{" "}
-                      {t(
-                        "عبر زر «تم البيع» بجانب الإعلان. المشتري يظهر له الطلب في «مشترياته» ويمكنه تقييمك.",
-                        'using the "Mark as sold" button next to the listing. The buyer will see the order in "My purchases" and can rate you.',
-                      )}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
                 {availability === "available" && canWhatsApp ? (
                   <Button
@@ -754,6 +679,32 @@ export function BookDetails({ listing, relatedListings, viewer }: BookDetailsPro
                       : t("لا يتوفر واتساب لهذا العرض", "No WhatsApp for this listing")}
                   </Button>
                 )}
+
+                {availability === "available" && !viewer?.isSeller ? (
+                  inCart ? (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-12 min-h-[48px] gap-2 touch-manipulation sm:shrink-0 sm:px-6"
+                      asChild
+                    >
+                      <Link href="/cart">
+                        <ShoppingCart className="h-5 w-5" />
+                        {t("اذهب للسلة", "Go to cart")}
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-12 min-h-[48px] gap-2 touch-manipulation sm:shrink-0 sm:px-6"
+                      onClick={handleAddToCart}
+                    >
+                      <ShoppingCart className="h-5 w-5" />
+                      {t("أضف للسلة", "Add to cart")}
+                    </Button>
+                  )
+                ) : null}
                 <Button
                   size="lg"
                   variant="outline"

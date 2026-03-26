@@ -7,6 +7,8 @@ export type ListingItemType = 'original' | 'notes' | 'reference' | 'summary'
 export type ReportStatus = 'pending' | 'reviewed' | 'resolved' | 'dismissed'
 export type ReportReason = 'inappropriate' | 'spam' | 'fake' | 'offensive' | 'other'
 export type UserRole = 'user' | 'admin'
+export type OrderStatus = 'reserved' | 'in_delivery' | 'delivered' | 'received' | 'cancelled'
+export type FulfillmentType = 'campus_pickup' | 'delivery'
 
 export interface Faculty {
   id: string
@@ -107,6 +109,32 @@ export interface Report {
   reporter?: Profile
   listing?: Listing
   resolver?: Profile
+}
+
+export interface Order {
+  id: string
+  listing_id: string
+  seller_id: string
+  buyer_id: string
+  status: OrderStatus
+  fulfillment_type: FulfillmentType
+  delivery_note: string | null
+  price: number
+  points_earned: number
+  created_at: string
+  updated_at: string
+  listing?: Listing
+  seller?: Profile
+  buyer?: Profile
+}
+
+export interface PointsLedgerRow {
+  id: string
+  user_id: string
+  order_id: string | null
+  delta_points: number
+  reason: string
+  created_at: string
 }
 
 // Condition labels in Arabic

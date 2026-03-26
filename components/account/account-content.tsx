@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, LogOut, Loader2, User, Edit } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { isValidTenDigitPhone, sanitizePhoneDigits, toTenDigitPhone } from "@/lib/utils/phone"
+import { isValidEmailFormat, normalizeEmail } from "@/lib/utils/email"
 
 type Faculty = { id: string; name_ar?: string; name?: string }
 type Major = { id: string; faculty_id: string; name_ar?: string; name?: string }
@@ -89,10 +90,15 @@ export function AccountContent({
   const [error, setError] = useState<string | null>(null)
 
   const [fullName, setFullName] = useState(profile?.full_name ?? "")
+  const [emailDraft, setEmailDraft] = useState(userEmail)
   const [phone, setPhone] = useState(toTenDigitPhone(profile?.phone))
   const [whatsapp, setWhatsapp] = useState(toTenDigitPhone(profile?.whatsapp))
   const [facultyId, setFacultyId] = useState(profile?.faculty_id ?? "")
   const [majorId, setMajorId] = useState(profile?.major_id ?? "")
+
+  useEffect(() => {
+    setEmailDraft(userEmail)
+  }, [userEmail])
 
   const filteredMajors = majors.filter((m) => m.faculty_id === facultyId)
 
@@ -134,6 +140,23 @@ export function AccountContent({
       return
     }
 
+    const nextEmail = normalizeEmail(emailDraft)
+    const currentEmail = normalizeEmail(userEmail)
+    const emailChangeRequested = nextEmail !== currentEmail
+    if (emailChangeRequested) {
+      if (!isValidEmailFormat(emailDraft)) {
+        setError("البريد الإلكتروني غير صالح")
+        setSaving(false)
+        return
+      }
+      const { error: emailChangeError } = await supabase.auth.updateUser({ email: nextEmail })
+      if (emailChangeError) {
+        setSaving(false)
+        setError(mapSupabaseProfileError(emailChangeError.message))
+        return
+      }
+    }
+
     const payload = {
       id: user.id,
       full_name: trimmedName,
@@ -172,12 +195,22 @@ export function AccountContent({
         setError("لم يتم حفظ البيانات. أعد المحاولة.")
         return
       }
+      if (emailChangeRequested) {
+        window.alert(
+          "طُلب تغيير البريد. راجع بريدك الجديد لإكمال التحديث إن وُجد رابط تأكيد من مزوّد تسجيل الدخول.",
+        )
+      }
       setEditing(false)
       router.refresh()
       return
     }
 
     setSaving(false)
+    if (emailChangeRequested) {
+      window.alert(
+        "طُلب تغيير البريد. راجع بريدك الجديد لإكمال التحديث إن وُجد رابط تأكيد من مزوّد تسجيل الدخول.",
+      )
+    }
     setEditing(false)
     router.refresh()
   }
@@ -233,8 +266,18 @@ export function AccountContent({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">البريد الإلكتروني</Label>
-                  <Input id="email" value={userEmail} disabled className="bg-muted" />
-                  <p className="text-xs text-muted-foreground">لا يمكن تغيير البريد الإلكتروني</p>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={emailDraft}
+                    onChange={(e) => setEmailDraft(e.target.value)}
+                    placeholder="you@example.com"
+                    dir="ltr"
+                    autoComplete="email"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    عند تغيير البريد قد يُرسل لك رابط تأكيد على العنوان الجديد (حسب إعدادات الموقع).
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">رقم الهاتف</Label>

@@ -29,6 +29,7 @@ import {
   Sun,
   Moon,
   ShoppingBag,
+  ShoppingCart,
 } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
@@ -200,6 +201,18 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link href="/dashboard/orders" className="cursor-pointer">
+                        <ShoppingBag className="ml-2 h-4 w-4" />
+                        {t("طلباتي", "My orders")}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/cart" className="cursor-pointer">
+                        <ShoppingCart className="ml-2 h-4 w-4" />
+                        {t("السلة", "Cart")}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/dashboard/purchases" className="cursor-pointer">
                         <ShoppingBag className="ml-2 h-4 w-4" />
                         {t("مشترياتك", "Your purchases")}
@@ -318,6 +331,18 @@ export function Header() {
                     <Link href="/dashboard">
                       <LayoutDashboard className="h-4 w-4" />
                       {t("لوحة التحكم", "Dashboard")}
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                    <Link href="/dashboard/orders">
+                      <ShoppingBag className="h-4 w-4" />
+                      {t("طلباتي", "My orders")}
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                    <Link href="/cart">
+                      <ShoppingCart className="h-4 w-4" />
+                      {t("السلة", "Cart")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">

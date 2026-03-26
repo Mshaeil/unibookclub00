@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { normalizeEmail } from "@/lib/utils/email"
 import { phoneDigitsMatchLast10, sanitizePhoneDigits } from "@/lib/utils/phone"
 
 const BUCKET = "listing-images"
@@ -55,7 +56,7 @@ export async function GET(
 
   const { data: sale, error: saleError } = await supabase
     .from("sales")
-    .select("id, buyer_phone, buyer_id")
+    .select("id, buyer_phone, buyer_id, buyer_email")
     .eq("listing_id", listingId)
     .maybeSingle()
 
@@ -64,6 +65,12 @@ export async function GET(
   }
 
   const isBuyerById = sale.buyer_id === user.id
+  const userEm = user.email ? normalizeEmail(user.email) : ""
+  const saleEm =
+    sale.buyer_email && String(sale.buyer_email).trim()
+      ? normalizeEmail(String(sale.buyer_email))
+      : ""
+  const isBuyerByEmail = Boolean(userEm && saleEm && userEm === saleEm)
   const bp = sale.buyer_phone ?? ""
   const bp10 = sanitizePhoneDigits(bp, 10)
   const p10 = sanitizePhoneDigits(phone, 10)
@@ -75,7 +82,7 @@ export async function GET(
     phoneDigitsMatchLast10(bp, phone) || phoneDigitsMatchLast10(bp, whatsapp)
   const isBuyerByPhone = isBuyerByPhoneStrict || isBuyerByPhoneLoose
 
-  if (!isBuyerById && !isBuyerByPhone) {
+  if (!isBuyerById && !isBuyerByEmail && !isBuyerByPhone) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

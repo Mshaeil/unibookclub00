@@ -7,9 +7,7 @@ import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -104,12 +102,6 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
   const t = useTranslate()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
-  const [saleTarget, setSaleTarget] = useState<Listing | null>(null)
-  const [buyerName, setBuyerName] = useState("")
-  const [buyerPhone, setBuyerPhone] = useState("")
-  const [buyerAccount, setBuyerAccount] = useState("")
-  const [saleSubmitting, setSaleSubmitting] = useState(false)
-  const [saleError, setSaleError] = useState<string | null>(null)
   const [bulkOpen, setBulkOpen] = useState(false)
   const [bulkPercent, setBulkPercent] = useState("")
   const [bulkLoading, setBulkLoading] = useState(false)
@@ -141,76 +133,6 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
       return
     }
 
-    router.refresh()
-  }
-
-  function openSaleDialog(listing: Listing) {
-    setSaleTarget(listing)
-    setBuyerName("")
-    setBuyerPhone("")
-    setBuyerAccount("")
-    setSaleError(null)
-  }
-
-  async function submitRecordedSale() {
-    if (!saleTarget) return
-    if (!buyerName.trim() || !buyerPhone.trim()) {
-      setSaleError(
-        t("يرجى إدخال اسم المشتري ورقم التواصل", "Please enter buyer name and contact number"),
-      )
-      return
-    }
-
-    const phoneDigits = sanitizePhoneDigits(buyerPhone, 10)
-    if (!isValidTenDigitPhone(phoneDigits)) {
-      setSaleError(t("رقم التواصل غير صالح", "Invalid contact number"))
-      return
-    }
-
-    setSaleSubmitting(true)
-    setSaleError(null)
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setSaleSubmitting(false)
-      setSaleError(t("يرجى تسجيل الدخول", "Please sign in"))
-      return
-    }
-
-    const referenceCode = `SALE-${saleTarget.id.replace(/-/g, "").toUpperCase()}`
-    const { error: saleErrorInsert } = await supabase.from("sales").insert({
-      listing_id: saleTarget.id,
-      seller_id: user.id,
-      buyer_id: null,
-      buyer_name: buyerName.trim(),
-      buyer_phone: phoneDigits,
-      buyer_email: null,
-      buyer_account: buyerAccount.trim() || null,
-      reference_code: referenceCode,
-    })
-
-    if (saleErrorInsert) {
-      setSaleSubmitting(false)
-      setSaleError(saleErrorInsert.message)
-      return
-    }
-
-    const { error: listingError } = await supabase
-      .from("listings")
-      .update({ status: "sold", availability: "sold" })
-      .eq("id", saleTarget.id)
-      .eq("seller_id", user.id)
-
-    setSaleSubmitting(false)
-    if (listingError) {
-      setSaleError(listingError.message)
-      return
-    }
-
-    setSaleTarget(null)
-    window.alert(
-      t(`تم تسجيل البيع. مرجع العملية: ${referenceCode}`, `Sale recorded. Reference: ${referenceCode}`),
-    )
     router.refresh()
   }
 
@@ -274,66 +196,6 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Dialog open={Boolean(saleTarget)} onOpenChange={(open) => !open && setSaleTarget(null)}>
-        <DialogContent className="sm:max-w-md" dir={language === "ar" ? "rtl" : "ltr"}>
-          <DialogHeader>
-            <DialogTitle>
-              {t("تسجيل بيع — بيانات المشتري", "Record sale — buyer details")}
-            </DialogTitle>
-            <DialogDescription>
-              {t(
-                "أنت البائع: أدخل من اشتري منك بعد إتمام الصفقة. رقم التواصل يجب أن يطابق بيانات المشتري في حسابه ليظهر له الطلب في «مشترياته».",
-                "Enter the buyer after the deal. Their contact number must match their profile so the purchase appears in their list.",
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3 py-2">
-            {saleError && (
-              <p className="text-sm text-destructive">{saleError}</p>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="dash-buyer-name">{t("اسم المشتري", "Buyer name")} *</Label>
-              <Input
-                id="dash-buyer-name"
-                value={buyerName}
-                onChange={(e) => setBuyerName(e.target.value)}
-                placeholder={t("الاسم كما اتفقتما", "Name as agreed")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dash-buyer-phone">{t("رقم التواصل", "Contact number")} *</Label>
-              <Input
-                id="dash-buyer-phone"
-                value={buyerPhone}
-                onChange={(e) => setBuyerPhone(sanitizePhoneDigits(e.target.value, 10))}
-                inputMode="numeric"
-                maxLength={10}
-                placeholder="0791234567"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dash-buyer-account">{t("حساب الدفع (اختياري)", "Payment account (optional)")}</Label>
-              <Textarea
-                id="dash-buyer-account"
-                value={buyerAccount}
-                onChange={(e) => setBuyerAccount(e.target.value)}
-                placeholder={t("رقم حساب بنكي، محفظة، أو أي ملاحظة داخلية لك", "Bank account, wallet, or your internal note")}
-                rows={2}
-                className="resize-none"
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setSaleTarget(null)}>
-              {t("إلغاء", "Cancel")}
-            </Button>
-            <Button type="button" onClick={submitRecordedSale} disabled={saleSubmitting}>
-              {saleSubmitting ? t("جاري الحفظ...", "Saving...") : t("تأكيد البيع", "Confirm sale")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="sm:max-w-md" dir={language === "ar" ? "rtl" : "ltr"}>
           <DialogHeader>
@@ -637,17 +499,6 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
 
                     {/* Actions */}
                     <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3 -mx-4 px-4 -mb-1">
-                      {listing.status !== "sold" && listing.status === "approved" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1"
-                          onClick={() => openSaleDialog(listing)}
-                        >
-                          <ShoppingBag className="h-4 w-4" />
-                          {t("تم البيع", "Mark sold")}
-                        </Button>
-                      )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="flex-shrink-0">

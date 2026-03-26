@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BookOpen, Loader2, Mail, User, Phone, GraduationCap, AlertCircle } from "lucide-react"
 import { useLanguage, useTranslate } from "@/components/language-provider"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
+import { TurnstileWidget } from "@/components/auth/turnstile-widget"
 
 type Faculty = {
   id: string
@@ -49,6 +50,9 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState("")
+
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""
 
   useEffect(() => {
     async function fetchFaculties() {
@@ -83,6 +87,12 @@ export default function RegisterPage() {
       return t(
         "تسجيل الدخول عبر Google غير مفعّل في Supabase (Authentication → Providers → Google).",
         "Google sign-in is not enabled in Supabase (Authentication → Providers → Google).",
+      )
+    }
+    if (lower.includes("captcha verification process failed")) {
+      return t(
+        "فشل التحقق الأمني (CAPTCHA). إذا كنت مفعّل CAPTCHA في Supabase فلابد من ضبط Turnstile: أضف NEXT_PUBLIC_TURNSTILE_SITE_KEY في .env.local وتأكد من إعداد CAPTCHA في Supabase (Auth → Settings). أو عطّل CAPTCHA من Supabase.",
+        "CAPTCHA verification failed. If CAPTCHA is enabled in Supabase, configure Turnstile (NEXT_PUBLIC_TURNSTILE_SITE_KEY + Supabase Auth settings) or disable CAPTCHA in Supabase.",
       )
     }
     return message || t("حدث خطأ", "Something went wrong")
@@ -146,12 +156,19 @@ export default function RegisterPage() {
       return
     }
 
+    if (turnstileSiteKey && !captchaToken) {
+      setError(t("يرجى إكمال التحقق الأمني أولاً", "Please complete the CAPTCHA first"))
+      setLoading(false)
+      return
+    }
+
     const { data: signData, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
         emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || 
           `${window.location.origin}/dashboard`,
+        ...(turnstileSiteKey ? { captchaToken } : {}),
         data: {
           full_name: formData.fullName,
           phone: phoneDigits,
@@ -169,7 +186,7 @@ export default function RegisterPage() {
       if (error.message.includes("already registered")) {
         setError(t("هذا البريد الإلكتروني مسجل مسبقاً", "This email is already registered"))
       } else {
-        setError(error.message)
+        setError(mapAuthError(error.message))
       }
       setLoading(false)
       return
@@ -359,6 +376,19 @@ export default function RegisterPage() {
                 hidePasswordAria={t("إخفاء كلمة المرور", "Hide password")}
                 autoComplete="new-password"
               />
+
+              {turnstileSiteKey ? (
+                <div className="space-y-2">
+                  <Label>{t("التحقق الأمني", "Security check")}</Label>
+                  <div className="rounded-md border bg-background p-3">
+                    <TurnstileWidget
+                      siteKey={turnstileSiteKey}
+                      onToken={(tkn) => setCaptchaToken(tkn)}
+                      onError={() => setCaptchaToken("")}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
               <Button

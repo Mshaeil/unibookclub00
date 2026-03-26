@@ -116,6 +116,7 @@ type Props = {
     id: string
     buyer_name: string
     buyer_phone: string
+    buyer_email: string | null
     reference_code: string
     created_at: string
     listing: { id: string; title: string } | null
@@ -388,8 +389,17 @@ export function AdminDashboard({
     })
 
     if (rpcError) {
+      const m = rpcError.message || ""
+      if (/only_super_admin_can_manage_admin_accounts/i.test(m)) {
+        setError("لا يمكنك إدارة حسابات المدراء إلا بحساب «سوبر أدمن». نفّذ scripts/019_super_admins_config.sql ثم أضف بريدك إلى public.super_admins.")
+        return
+      }
+      if (/cannot_modify_self/i.test(m)) {
+        setError("لا يمكنك تعديل حالة حسابك من لوحة الأدمن.")
+        return
+      }
       setError(
-        `فشل تحديث الحساب: ${rpcError.message}. نفّذ scripts/016_account_status_super_admin.sql في Supabase (SQL Editor) إن لم تكن فعلت.`,
+        `فشل تحديث الحساب: ${rpcError.message}. تأكد من تنفيذ scripts/016_account_status_super_admin.sql، ثم scripts/019_super_admins_config.sql في Supabase (SQL Editor).`,
       )
       return
     }
@@ -925,9 +935,10 @@ export function AdminDashboard({
               <CardHeader>
                 <CardTitle>المسؤول الأعلى — المدراء المسجّلون</CardTitle>
                 <CardDescription>
-                  يظهر هذا القسم فقط عند تسجيل الدخول بالبريد المعرّف في{" "}
-                  <code className="rounded bg-muted px-1">SUPER_ADMIN_EMAIL</code>. يمكنك تعليق أو حظر
-                  حسابات المدراء أو إعادة تفعيلها (لا يمكن تعديل حسابك من هنا).
+                  يظهر هذا القسم فقط عند إضافة بريدك إلى جدول{" "}
+                  <code className="rounded bg-muted px-1">public.super_admins</code> (نفّذ{" "}
+                  <code className="rounded bg-muted px-1">scripts/019_super_admins_config.sql</code>). يمكنك تعليق
+                  أو حظر حسابات المدراء أو إعادة تفعيلها (لا يمكن تعديل حسابك من هنا).
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1250,6 +1261,7 @@ export function AdminDashboard({
                     <TableHead>البائع</TableHead>
                     <TableHead>المشتري</TableHead>
                     <TableHead>رقم المشتري</TableHead>
+                    <TableHead>بريد المشتري</TableHead>
                     <TableHead>التاريخ</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1261,6 +1273,9 @@ export function AdminDashboard({
                       <TableCell>{sale.seller?.full_name || "-"}</TableCell>
                       <TableCell>{sale.buyer?.full_name || sale.buyer_name || "-"}</TableCell>
                       <TableCell>{sale.buyer_phone}</TableCell>
+                      <TableCell className="max-w-[200px] truncate" dir="ltr">
+                        {sale.buyer_email || "—"}
+                      </TableCell>
                       <TableCell>{new Date(sale.created_at).toLocaleDateString("ar-JO")}</TableCell>
                     </TableRow>
                   ))}

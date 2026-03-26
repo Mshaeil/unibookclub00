@@ -3,7 +3,6 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { createClient } from "@/lib/supabase/server"
 import { BookDetails } from "@/components/book-details"
-import { phoneDigitsMatchLast10, sanitizePhoneDigits } from "@/lib/utils/phone"
 
 export const dynamic = "force-dynamic"
 
@@ -65,40 +64,18 @@ export default async function BookPage({ params }: BookPageProps) {
     ? await relatedQuery.eq("course_id", listing.course_id)
     : await relatedQuery
 
-  let canRateSeller = false
-  if (user && listing.status === "sold") {
-    const [{ data: saleRows }, { data: buyerProfile }] = await Promise.all([
-      supabase
-        .from("sales")
-        .select("buyer_id, buyer_email, buyer_phone")
-        .eq("listing_id", listing.id),
-      supabase.from("profiles").select("phone, whatsapp").eq("id", user.id).maybeSingle(),
-    ])
-    const email = user.email?.toLowerCase().trim()
-    const phone = buyerProfile?.phone ?? ""
-    const whatsapp = buyerProfile?.whatsapp ?? ""
-    const p10 = sanitizePhoneDigits(phone, 10)
-    const w10 = sanitizePhoneDigits(whatsapp, 10)
-    canRateSeller = Boolean(
-      saleRows?.some(
-        (s: { buyer_id: string | null; buyer_email: string | null; buyer_phone: string }) => {
-          if (s.buyer_id === user.id) return true
-          if (
-            email &&
-            s.buyer_email &&
-            s.buyer_email.toLowerCase().trim() === email
-          )
-            return true
-          const bp10 = sanitizePhoneDigits(s.buyer_phone ?? "", 10)
-          if (bp10.length === 10 && (bp10 === p10 || bp10 === w10)) return true
-          return (
-            phoneDigitsMatchLast10(s.buyer_phone ?? "", phone) ||
-            phoneDigitsMatchLast10(s.buyer_phone ?? "", whatsapp)
-          )
-        },
-      ),
-    )
-  }
+  const { data: sellerReviews } = await supabase
+    .from("seller_reviews")
+    .select("rating")
+    .eq("seller_id", listing.seller_id)
+    .limit(200)
+
+  const ratings = (sellerReviews ?? [])
+    .map((r: { rating: number }) => Number(r.rating))
+    .filter((n) => Number.isFinite(n))
+  const sellerRatingCount = ratings.length
+  const sellerRatingAvg =
+    sellerRatingCount > 0 ? ratings.reduce((a, b) => a + b, 0) / sellerRatingCount : 0
 
   const normalizedRelatedListings = (relatedListings || []).map((item: {
     id: string
@@ -125,8 +102,9 @@ export default async function BookPage({ params }: BookPageProps) {
           viewer={{
             userId: user?.id ?? null,
             isSeller: Boolean(user && listing.seller_id === user.id),
-            canRateSeller,
+            canRateSeller: false,
           }}
+          sellerRating={{ avg: sellerRatingAvg, count: sellerRatingCount }}
         />
       </main>
       <Footer />

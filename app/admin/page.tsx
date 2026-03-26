@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AdminDashboard } from "@/components/admin/admin-dashboard"
-import { isSuperAdminEmail } from "@/lib/super-admin"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -63,7 +62,9 @@ const [
     .order("created_at", { ascending: false }),
   supabase
     .from("sales")
-    .select("id, listing_id, seller_id, buyer_id, buyer_name, buyer_phone, reference_code, created_at")
+    .select(
+      "id, listing_id, seller_id, buyer_id, buyer_name, buyer_phone, buyer_email, reference_code, created_at",
+    )
     .order("created_at", { ascending: false }),
   supabase
     .from("seller_reviews")
@@ -245,7 +246,15 @@ const users = usersRaw.map((u) => {
   }
 })
 
-const isSuperAdmin = isSuperAdminEmail(user.email)
+let isSuperAdmin = false
+try {
+  const { data: isSuper, error: isSuperErr } = await supabase.rpc("is_super_admin")
+  if (!isSuperErr) {
+    isSuperAdmin = Boolean(isSuper)
+  }
+} catch {
+  // ignore (older DB without scripts/019)
+}
 let superAdmins: {
   id: string
   email: string
@@ -282,6 +291,7 @@ const rawSales = ((salesResult.error && salesResult.error.code === "PGRST205")
   buyer_id: string | null
   buyer_name: string
   buyer_phone: string
+  buyer_email: string | null
   reference_code: string
   created_at: string
 }[]
@@ -384,6 +394,7 @@ const sales = rawSales.map((s) => ({
   id: s.id,
   buyer_name: s.buyer_name,
   buyer_phone: s.buyer_phone,
+  buyer_email: s.buyer_email ?? null,
   reference_code: s.reference_code,
   created_at: s.created_at,
   listing: listingById.get(s.listing_id) || null,
