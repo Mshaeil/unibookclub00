@@ -27,7 +27,7 @@ export default async function AdminPage() {
 
 const [
   listingsResult,
-  usersResult,
+  adminUsersRpc,
   reportsByReporterResult,
   reportsByUserResult,
   salesResult,
@@ -51,10 +51,7 @@ const [
     `,
     )
     .order("created_at", { ascending: false }),
-  supabase
-    .from("profiles")
-    .select("id, full_name, phone, whatsapp, role, created_at, is_active, email")
-    .order("created_at", { ascending: false }),
+  supabase.rpc("admin_list_registered_users"),
   supabase
     .from("reports")
     .select("id, reason, details, status, created_at, listing_id, reporter_id")
@@ -96,8 +93,8 @@ if (listingsResult.error) {
     })
   }
 }
-if (usersResult.error) {
-  console.error("Admin users query error:", usersResult.error)
+if (adminUsersRpc.error) {
+  console.error("Admin users RPC error:", adminUsersRpc.error)
 }
 const reportsResult =
   !reportsByReporterResult.error
@@ -202,7 +199,7 @@ const platformStats = {
   rejectedTotal: rejectedCountRes.count ?? 0,
   homeSpotlightCount: (homeFeaturedRes.data || []).length,
 }
-const users = (usersResult.data || []).map((u: {
+type UserRow = {
   id: string
   full_name: string | null
   phone: string | null
@@ -211,8 +208,22 @@ const users = (usersResult.data || []).map((u: {
   created_at: string
   is_active?: boolean | null
   email?: string | null
-}) => ({
+}
+
+let usersRaw: UserRow[] = []
+if (!adminUsersRpc.error && Array.isArray(adminUsersRpc.data)) {
+  usersRaw = adminUsersRpc.data as UserRow[]
+} else {
+  const fb = await supabase
+    .from("profiles")
+    .select("id, full_name, phone, whatsapp, role, created_at, is_active, email")
+    .order("created_at", { ascending: false })
+  usersRaw = (fb.data || []) as UserRow[]
+}
+
+const users = usersRaw.map((u) => ({
   ...u,
+  role: u.role === "admin" ? "admin" as const : "user" as const,
   is_active: u.is_active !== false,
   email: u.email ?? null,
 }))

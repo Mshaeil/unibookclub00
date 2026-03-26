@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { countFromBigintRpc } from "@/lib/utils"
 import { Header } from "@/components/header"
 import { HeroSection } from "@/components/hero-section"
 import { HowItWorks } from "@/components/how-it-works"
@@ -14,11 +15,13 @@ export default async function HomePage() {
 
   const [
     { count: availableBooks },
-    { count: sellersCount },
+    registeredRpc,
+    { count: profilesCount },
     { count: soldCount },
     { data: listings },
   ] = await Promise.all([
     supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "approved"),
+    supabase.rpc("get_platform_registered_count"),
     supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "sold"),
     supabase
@@ -30,6 +33,10 @@ export default async function HomePage() {
       .order("created_at", { ascending: false })
       .limit(12),
   ])
+
+  const rpcRegistered = countFromBigintRpc(registeredRpc.data)
+  const sellersCount =
+    !registeredRpc.error && rpcRegistered !== null ? rpcRegistered : (profilesCount ?? 0)
 
   const normalizedListings = (listings || []).map((listing: {
     id: string

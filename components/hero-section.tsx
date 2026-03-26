@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, BookOpen, Search, Users } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
 import { createClient } from "@/lib/supabase/client"
+import { countFromBigintRpc } from "@/lib/utils"
 
 type HeroStats = {
   availableBooks: number
@@ -21,15 +22,19 @@ export function HeroSection({ stats }: { stats?: HeroStats }) {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const [approved, profiles, sold] = await Promise.all([
+      const [approved, registeredRpc, profiles, sold] = await Promise.all([
         supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.rpc("get_platform_registered_count"),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "sold"),
       ])
       if (cancelled) return
+      const rpcN = countFromBigintRpc(registeredRpc.data)
+      const registered =
+        !registeredRpc.error && rpcN !== null ? rpcN : (profiles.count ?? 0)
       setLive({
         availableBooks: approved.count ?? 0,
-        sellersCount: profiles.count ?? 0,
+        sellersCount: registered,
         soldCount: sold.count ?? 0,
       })
     })()
