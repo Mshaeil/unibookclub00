@@ -168,19 +168,21 @@ CREATE OR REPLACE FUNCTION public.create_order_reserve_listing(
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, auth
 AS $$
 DECLARE
   v_user_id uuid;
   v_listing record;
   v_order_id uuid;
+  v_jwt jsonb;
 BEGIN
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'not_authenticated';
   END IF;
 
-  -- Ensure buyer profile exists (orders.buyer_id FK -> profiles.id)
+  -- Ensure buyer profile exists (orders.buyer_id FK -> profiles.id).
+  -- 1) Prefer auth.users (full metadata). 2) Fallback auth.jwt() if SELECT inserted 0 rows.
   IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_user_id) THEN
     INSERT INTO public.profiles (id, full_name, phone, whatsapp, email, role)
     SELECT
@@ -193,11 +195,36 @@ BEGIN
       ),
       NULLIF(TRIM(u.raw_user_meta_data ->> 'phone'), ''),
       NULLIF(TRIM(u.raw_user_meta_data ->> 'whatsapp'), ''),
-      u.email::text,
+      NULLIF(TRIM(u.email::text), ''),
       'user'
     FROM auth.users u
     WHERE u.id = v_user_id
     ON CONFLICT (id) DO NOTHING;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_user_id) THEN
+    v_jwt := auth.jwt();
+    IF v_jwt IS NOT NULL THEN
+      INSERT INTO public.profiles (id, full_name, phone, whatsapp, email, role)
+      VALUES (
+        v_user_id,
+        COALESCE(
+          NULLIF(TRIM(v_jwt #>> '{user_metadata,full_name}'), ''),
+          NULLIF(TRIM(v_jwt #>> '{user_metadata,name}'), ''),
+          NULLIF(TRIM(SPLIT_PART(COALESCE(NULLIF(TRIM(v_jwt ->> 'email'), ''), ''), '@', 1)), ''),
+          'مستخدم'
+        ),
+        NULLIF(TRIM(v_jwt #>> '{user_metadata,phone}'), ''),
+        NULLIF(TRIM(v_jwt #>> '{user_metadata,whatsapp}'), ''),
+        NULLIF(TRIM(v_jwt ->> 'email'), ''),
+        'user'
+      )
+      ON CONFLICT (id) DO NOTHING;
+    END IF;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_user_id) THEN
+    RAISE EXCEPTION 'buyer_profile_missing: could not create profiles row; run SQL from scripts/020 or sign in again';
   END IF;
 
   IF p_fulfillment_type IS NULL OR p_fulfillment_type NOT IN ('campus_pickup', 'delivery') THEN

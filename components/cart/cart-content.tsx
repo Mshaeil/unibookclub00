@@ -94,8 +94,16 @@ export function CartContent() {
       return
     }
 
-    // Ensure profiles row exists (orders.buyer_id FK -> profiles.id)
-    await ensureUserProfile(supabase, auth.user)
+    const ensured = await ensureUserProfile(supabase, auth.user)
+    if (!ensured.ok) {
+      setSubmitting(false)
+      setError(
+        ensured.error.includes("row-level security")
+          ? "تعذّر تجهيز حسابك. جرّب تسجيل الخروج والدخول مجدداً أو تواصل مع الدعم."
+          : ensured.error,
+      )
+      return
+    }
 
     const { data: orderId, error: rpcErr } = await supabase.rpc("create_order_reserve_listing", {
       p_listing_id: first.id,
