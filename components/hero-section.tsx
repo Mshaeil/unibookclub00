@@ -1,12 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, BookOpen, Search, Users } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
-import { createPublicBrowserSupabaseClient } from "@/lib/supabase/public-client"
-import { countFromBigintRpc } from "@/lib/utils"
 
 type HeroStats = {
   availableBooks: number
@@ -16,32 +14,13 @@ type HeroStats = {
 
 export function HeroSection({ stats }: { stats?: HeroStats }) {
   const { language } = useLanguage()
-  const supabase = useMemo(() => createPublicBrowserSupabaseClient(), [])
   const [live, setLive] = useState<HeroStats | null>(null)
 
   useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const [approved, registeredRpc, profiles, sold] = await Promise.all([
-        supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "approved"),
-        supabase.rpc("get_platform_registered_count"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
-        supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "sold"),
-      ])
-      if (cancelled) return
-      const rpcN = countFromBigintRpc(registeredRpc.data)
-      const registered =
-        !registeredRpc.error && rpcN !== null ? rpcN : (profiles.count ?? 0)
-      setLive({
-        availableBooks: approved.count ?? 0,
-        sellersCount: registered,
-        soldCount: sold.count ?? 0,
-      })
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [supabase])
+    // Keep homepage fast/stable: avoid client-side Supabase calls here.
+    // Stats are shown from server props when available, otherwise fallback to 0.
+    setLive(null)
+  }, [])
 
   const availableBooks = live?.availableBooks ?? stats?.availableBooks ?? 0
   const sellersCount = live?.sellersCount ?? stats?.sellersCount ?? 0

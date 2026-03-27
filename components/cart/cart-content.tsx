@@ -67,7 +67,7 @@ export function CartContent() {
         return
       }
 
-      const map = new Map((data || []).map((r) => [r.id, r as ListingRow]))
+      const map = new Map((data || []).map((r: ListingRow) => [r.id, r]))
       setRows(listingIds.map((id) => map.get(id)).filter(Boolean) as ListingRow[])
     }
     void load()

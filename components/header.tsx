@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -30,7 +30,7 @@ import {
   ShoppingBag,
   ShoppingCart,
 } from "lucide-react"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
+import type { AuthChangeEvent, Session, User as SupabaseUser } from "@supabase/supabase-js"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
 
 type Profile = {
@@ -41,7 +41,7 @@ type Profile = {
 export function Header() {
   const router = useRouter()
   const pathname = usePathname()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { resolvedTheme, setTheme } = useTheme()
   const { language, setLanguage } = useLanguage()
   const t = useTranslate()
@@ -69,7 +69,7 @@ export function Header() {
 
     getUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ?? null)
       if (!session?.user) {
         setProfile(null)
