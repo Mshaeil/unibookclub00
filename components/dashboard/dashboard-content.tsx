@@ -42,7 +42,6 @@ import { formatDistanceToNow } from "date-fns"
 import { ar, enUS } from "date-fns/locale"
 import { createClient } from "@/lib/supabase/client"
 import { useLanguage, useTranslate } from "@/components/language-provider"
-import { isValidTenDigitPhone, sanitizePhoneDigits } from "@/lib/utils/phone"
 import {
   discountEndsAtFromNow,
   discountPercentLabel,

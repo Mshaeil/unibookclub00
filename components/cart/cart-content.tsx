@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { addToCart, readCart, removeFromCart } from "@/lib/cart"
+import { readCart, removeFromCart } from "@/lib/cart"
 import { ShoppingCart, Trash2 } from "lucide-react"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
 

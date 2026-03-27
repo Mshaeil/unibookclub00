@@ -27,8 +27,6 @@ import {
   Settings,
   Shield,
   MoreVertical,
-  Sun,
-  Moon,
   ShoppingBag,
   ShoppingCart,
 } from "lucide-react"
