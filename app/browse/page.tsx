@@ -1,9 +1,10 @@
-import { createClient } from "@/lib/supabase/server"
+import { createPublicSupabaseClient } from "@/lib/supabase/public-server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { BrowseContent } from "@/components/browse/browse-content"
 
-export const dynamic = "force-dynamic"
+/** كاش لكل تركيبة فلاتر — أسرع من SSR ديناميكي كامل مع cookies */
+export const revalidate = 30
 
 export default async function BrowsePage({
   searchParams,
@@ -11,7 +12,7 @@ export default async function BrowsePage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const params = await searchParams
-  const supabase = await createClient()
+  const supabase = createPublicSupabaseClient()
 
   const search = typeof params.search === "string" ? params.search : ""
   const faculty = typeof params.faculty === "string" ? params.faculty : ""

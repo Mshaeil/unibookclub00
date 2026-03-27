@@ -1,20 +1,33 @@
-import { createClient } from "@/lib/supabase/server"
+import { unstable_cache } from "next/cache"
+import { createPublicSupabaseClient } from "@/lib/supabase/public-server"
 import { HowItWorks } from "@/components/how-it-works"
 import { BooksSection } from "@/components/books-section"
 import { FacultiesSection } from "@/components/faculties-section"
 import { CTASection } from "@/components/cta-section"
 
-export async function HomeMainContent() {
-  const supabase = await createClient()
+const fetchHomeListings = unstable_cache(
+  async () => {
+    const supabase = createPublicSupabaseClient()
+    const { data, error } = await supabase
+      .from("listings")
+      .select(
+        "id, title, price, original_price, discount_expires_at, condition, availability, images, course:courses(name_ar, name_en)",
+      )
+      .eq("status", "approved")
+      .order("created_at", { ascending: false })
+      .limit(12)
+    if (error) {
+      console.error("[HomeMainContent] listings:", error.message)
+      return []
+    }
+    return data ?? []
+  },
+  ["home-main-listings-v2"],
+  { revalidate: 60, tags: ["home-listings"] },
+)
 
-  const { data: listings } = await supabase
-    .from("listings")
-    .select(
-      "id, title, price, original_price, discount_expires_at, condition, availability, images, course:courses(name_ar, name_en)",
-    )
-    .eq("status", "approved")
-    .order("created_at", { ascending: false })
-    .limit(12)
+export async function HomeMainContent() {
+  const listings = await fetchHomeListings()
 
   const normalizedListings = (listings || []).map(
     (listing: {
