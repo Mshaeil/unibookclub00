@@ -1,12 +1,14 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-let browserClient: ReturnType<typeof createBrowserClient> | null = null
+declare global {
+  var __ubc_supabase_browser__: ReturnType<typeof createBrowserClient> | undefined
+}
 
 export function createClient() {
-  if (browserClient) return browserClient
-  browserClient = createBrowserClient(
+  if (globalThis.__ubc_supabase_browser__) return globalThis.__ubc_supabase_browser__
+  globalThis.__ubc_supabase_browser__ = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   )
-  return browserClient
+  return globalThis.__ubc_supabase_browser__
 }

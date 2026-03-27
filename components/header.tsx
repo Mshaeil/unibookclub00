@@ -52,36 +52,52 @@ export function Header() {
 
   useEffect(() => {
     async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      
-      if (user) {
-        await ensureUserProfile(supabase, user)
-        const { data } = await supabase
-          .from("profiles")
-          .select("full_name, role")
-          .eq("id", user.id)
-          .single()
-        setProfile(data)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
+
+        if (user) {
+          await ensureUserProfile(supabase, user)
+          const { data } = await supabase
+            .from("profiles")
+            .select("full_name, role")
+            .eq("id", user.id)
+            .single()
+          setProfile(data)
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        // Avoid hard-failing UI on transient Supabase auth storage lock contention.
+        if (!/lock:sb-.*-auth-token/i.test(msg)) {
+          console.error("[Header] auth init error:", e)
+        }
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     getUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
-      setUser(session?.user ?? null)
-      if (!session?.user) {
-        setProfile(null)
-        return
+      try {
+        setUser(session?.user ?? null)
+        if (!session?.user) {
+          setProfile(null)
+          return
+        }
+        await ensureUserProfile(supabase, session.user)
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name, role")
+          .eq("id", session.user.id)
+          .single()
+        setProfile(data)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (!/lock:sb-.*-auth-token/i.test(msg)) {
+          console.error("[Header] auth state error:", e)
+        }
       }
-      await ensureUserProfile(supabase, session.user)
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, role")
-        .eq("id", session.user.id)
-        .single()
-      setProfile(data)
     })
 
     return () => subscription.unsubscribe()
