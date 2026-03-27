@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, BookOpen, Search, Users } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
-import { createClient } from "@/lib/supabase/client"
+import { createPublicBrowserSupabaseClient } from "@/lib/supabase/public-client"
 import { countFromBigintRpc } from "@/lib/utils"
 
 type HeroStats = {
@@ -16,17 +16,17 @@ type HeroStats = {
 
 export function HeroSection({ stats }: { stats?: HeroStats }) {
   const { language } = useLanguage()
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createPublicBrowserSupabaseClient(), [])
   const [live, setLive] = useState<HeroStats | null>(null)
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       const [approved, registeredRpc, profiles, sold] = await Promise.all([
-        supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.rpc("get_platform_registered_count"),
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "sold"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "sold"),
       ])
       if (cancelled) return
       const rpcN = countFromBigintRpc(registeredRpc.data)
