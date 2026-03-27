@@ -24,26 +24,31 @@ export function AdminSecurityPanel() {
       return
     }
     setLoading(true)
-    const { data, error: rpcErr } = await supabase.rpc("admin_promote_by_email", {
-      target_email: trimmed,
-    })
-    setLoading(false)
-    if (rpcErr) {
-      if (/does not exist|PGRST202|42883/i.test(rpcErr.message)) {
-        setError(
-          "الدالة غير موجودة — نفّذ سكربت scripts/012_messaging_admin_promote.sql في Supabase (قسم SQL).",
-        )
-      } else {
-        setError(rpcErr.message)
+    try {
+      const { data, error: rpcErr } = await supabase.rpc("admin_promote_by_email", {
+        target_email: trimmed,
+      })
+      if (rpcErr) {
+        if (/does not exist|PGRST202|42883/i.test(rpcErr.message)) {
+          setError(
+            "الدالة غير موجودة — نفّذ سكربت scripts/012_messaging_admin_promote.sql في Supabase (قسم SQL).",
+          )
+        } else {
+          setError(rpcErr.message)
+        }
+        return
       }
-      return
-    }
-    const n = typeof data === "number" ? data : 0
-    if (n === 0) {
-      setMessage("لم يُعثر على مستخدم بهذا البريد في نظام الدخول (تحقق من التطابق الكامل مع بريد الحساب).")
-    } else {
-      setMessage(`تم تفعيل صلاحيات المدير لـ ${n} مستخدم. أعد تحميل الصفحة لرؤية التحديث في الجدول.`)
-      setEmail("")
+      const n = typeof data === "number" ? data : 0
+      if (n === 0) {
+        setMessage("لم يُعثر على مستخدم بهذا البريد في نظام الدخول (تحقق من التطابق الكامل مع بريد الحساب).")
+      } else {
+        setMessage(`تم تفعيل صلاحيات المدير لـ ${n} مستخدم. أعد تحميل الصفحة لرؤية التحديث في الجدول.`)
+        setEmail("")
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "تعذر تنفيذ العملية حالياً")
+    } finally {
+      setLoading(false)
     }
   }
 

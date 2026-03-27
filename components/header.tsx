@@ -51,19 +51,27 @@ export function Header() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
+    const loadingFailsafe = window.setTimeout(() => {
+      if (mounted) setLoading(false)
+    }, 3500)
+
     async function getUser() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
+        if (!mounted) return
         setUser(user)
+        // Never block topbar on profile sync/read.
+        setLoading(false)
 
         if (user) {
-          await ensureUserProfile(supabase, user)
+          void ensureUserProfile(supabase, user)
           const { data } = await supabase
             .from("profiles")
             .select("full_name, role")
             .eq("id", user.id)
-            .single()
-          setProfile(data)
+            .maybeSingle()
+          if (mounted) setProfile(data ?? null)
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
@@ -71,8 +79,14 @@ export function Header() {
         if (!/lock:sb-.*-auth-token/i.test(msg)) {
           console.error("[Header] auth init error:", e)
         }
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+        }
       } finally {
-        setLoading(false)
+        window.clearTimeout(loadingFailsafe)
+        if (mounted) setLoading(false)
       }
     }
 
@@ -100,7 +114,11 @@ export function Header() {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      window.clearTimeout(loadingFailsafe)
+      subscription.unsubscribe()
+    }
   }, [supabase])
 
   function handleLanguageChange(nextLang: "ar" | "en") {

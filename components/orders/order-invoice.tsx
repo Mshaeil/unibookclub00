@@ -1,9 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Truck, User, MessageCircle, Phone, RefreshCw, Star } from "lucide-react"
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 
 type OrderRow = {
   id: string
@@ -85,7 +85,6 @@ export function OrderInvoice({
   existingReview: { id: string; rating: number; comment: string | null } | null
   redeemedPoints: number
 }) {
-  const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const [note, setNote] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -95,8 +94,60 @@ export function OrderInvoice({
   const [ratingSubmitting, setRatingSubmitting] = useState(false)
   const [redeemDraft, setRedeemDraft] = useState("")
   const [redeemSubmitting, setRedeemSubmitting] = useState(false)
+  const [orderState, setOrderState] = useState<OrderRow>(order)
+  const [eventsState, setEventsState] = useState<EventRow[]>(events)
+  const [pointsBalanceState, setPointsBalanceState] = useState<number>(pointsBalance)
+  const [existingReviewState, setExistingReviewState] = useState<{ id: string; rating: number; comment: string | null } | null>(
+    existingReview,
+  )
+  const [redeemedPointsState, setRedeemedPointsState] = useState<number>(redeemedPoints)
 
-  const listing = one(order.listing) as
+  useEffect(() => setOrderState(order), [order])
+  useEffect(() => setEventsState(events), [events])
+  useEffect(() => setPointsBalanceState(pointsBalance), [pointsBalance])
+  useEffect(() => setExistingReviewState(existingReview), [existingReview])
+  useEffect(() => setRedeemedPointsState(redeemedPoints), [redeemedPoints])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`order-live-${order.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${order.id}` },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          const n = payload.new as Record<string, unknown>
+          setOrderState((prev) => ({
+            ...prev,
+            status: (n.status as string) || prev.status,
+            points_earned: typeof n.points_earned === "number" ? (n.points_earned as number) : prev.points_earned,
+            updated_at: (n.updated_at as string) || prev.updated_at,
+          }))
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "order_events", filter: `order_id=eq.${order.id}` },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          const n = payload.new as Record<string, unknown>
+          const next: EventRow = {
+            id: String(n.id),
+            actor_id: String(n.actor_id),
+            from_status: (n.from_status as string | null) ?? null,
+            to_status: String(n.to_status),
+            note: (n.note as string | null) ?? null,
+            created_at: String(n.created_at),
+          }
+          setEventsState((prev) => (prev.some((e) => e.id === next.id) ? prev : [...prev, next]))
+        },
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [supabase, order.id])
+
+  const listing = one(orderState.listing) as
     | {
         id: string
         title?: string
@@ -106,71 +157,82 @@ export function OrderInvoice({
     | null
   const seller = listing?.seller ?? null
 
-  const isBuyer = viewerUserId === order.buyer_id
-  const isSeller = viewerUserId === order.seller_id
+  const isBuyer = viewerUserId === orderState.buyer_id
+  const isSeller = viewerUserId === orderState.seller_id
 
-  const canCancel = order.status !== "received" && order.status !== "cancelled"
-  const canSellerSetInDelivery = isSeller && order.status === "reserved"
-  const canSellerSetDelivered = isSeller && (order.status === "reserved" || order.status === "in_delivery")
-  const canBuyerSetReceived = isBuyer && (order.status === "delivered" || order.status === "in_delivery")
-  const canRate = isBuyer && order.status === "received" && !existingReview
-  const canRedeem = isBuyer && order.status !== "received" && order.status !== "cancelled"
+  const canCancel = orderState.status !== "received" && orderState.status !== "cancelled"
+  const canSellerSetInDelivery = isSeller && orderState.status === "reserved"
+  const canSellerSetDelivered = isSeller && (orderState.status === "reserved" || orderState.status === "in_delivery")
+  const canBuyerSetReceived = isBuyer && (orderState.status === "delivered" || orderState.status === "in_delivery")
+  const canRate = isBuyer && orderState.status === "received" && !existingReviewState
+  const canRedeem = isBuyer && orderState.status !== "received" && orderState.status !== "cancelled"
 
   async function setStatus(next: string) {
     setError(null)
     setSubmitting(true)
-    const { error: rpcErr } = await supabase.rpc("order_set_status", {
-      p_order_id: order.id,
-      p_next_status: next,
-      p_note: note.trim() || null,
-    })
-    setSubmitting(false)
-    if (rpcErr) {
-      const msg = rpcErr.message || "فشل تحديث الحالة"
-      if (/does not exist|PGRST202|42883/i.test(msg)) {
-        setError("ميزة الطلبات غير مفعّلة في قاعدة البيانات بعد. نفّذ scripts/020_orders_cart_points.sql في Supabase SQL Editor.")
-      } else if (/invalid_transition/i.test(msg)) {
-        setError("الانتقال بين الحالات غير مسموح حالياً. جرّب تحديث الصفحة ثم إعادة المحاولة.")
-      } else {
-        setError(msg)
+    try {
+      const { error: rpcErr } = await supabase.rpc("order_set_status", {
+        p_order_id: orderState.id,
+        p_next_status: next,
+        p_note: note.trim() || null,
+      })
+      if (rpcErr) {
+        const msg = rpcErr.message || "فشل تحديث الحالة"
+        if (/does not exist|PGRST202|42883/i.test(msg)) {
+          setError("ميزة الطلبات غير مفعّلة في قاعدة البيانات بعد. نفّذ scripts/020_orders_cart_points.sql في Supabase SQL Editor.")
+        } else if (/invalid_transition/i.test(msg)) {
+          setError("الانتقال بين الحالات غير مسموح حالياً. جرّب تحديث الصفحة ثم إعادة المحاولة.")
+        } else {
+          setError(msg)
+        }
+        return
       }
-      return
+      setOrderState((prev) => ({ ...prev, status: next }))
+      setNote("")
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "تعذر تحديث حالة الطلب حالياً")
+    } finally {
+      setSubmitting(false)
     }
-    setNote("")
-    router.refresh()
   }
 
   const whatsappDigits = (seller?.whatsapp || seller?.phone || "").replace(/\D/g, "")
 
-  const discountJod = Math.min(order.price, Math.max(0, redeemedPoints / 100))
-  const payable = Math.max(0, Number(order.price) - discountJod)
+  const discountJod = Math.min(orderState.price, Math.max(0, redeemedPointsState / 100))
+  const payable = Math.max(0, Number(orderState.price) - discountJod)
 
   async function redeemPoints() {
     const n = Number(redeemDraft)
     if (!Number.isFinite(n) || n <= 0) return
     setError(null)
     setRedeemSubmitting(true)
-    const { data: used, error: rpcErr } = await supabase.rpc("redeem_points_for_order", {
-      p_order_id: order.id,
-      p_points: Math.floor(n),
-    })
-    setRedeemSubmitting(false)
-    if (rpcErr) {
-      const msg = rpcErr.message || "فشل استخدام النقاط"
-      if (/does not exist|PGRST202|42883/i.test(msg)) {
-        setError("ميزة الخصم بالنقاط غير مفعّلة في قاعدة البيانات بعد. نفّذ scripts/021_points_redemption.sql في Supabase SQL Editor.")
-      } else if (/insufficient_points/i.test(msg)) {
-        setError("رصيد النقاط غير كافٍ.")
-      } else if (/redeem_limit_reached/i.test(msg)) {
-        setError("لا يمكن استخدام نقاط أكثر على هذا الطلب.")
-      } else {
-        setError(msg)
+    try {
+      const { data: used, error: rpcErr } = await supabase.rpc("redeem_points_for_order", {
+        p_order_id: orderState.id,
+        p_points: Math.floor(n),
+      })
+      if (rpcErr) {
+        const msg = rpcErr.message || "فشل استخدام النقاط"
+        if (/does not exist|PGRST202|42883/i.test(msg)) {
+          setError("ميزة الخصم بالنقاط غير مفعّلة في قاعدة البيانات بعد. نفّذ scripts/021_points_redemption.sql في Supabase SQL Editor.")
+        } else if (/insufficient_points/i.test(msg)) {
+          setError("رصيد النقاط غير كافٍ.")
+        } else if (/redeem_limit_reached/i.test(msg)) {
+          setError("لا يمكن استخدام نقاط أكثر على هذا الطلب.")
+        } else {
+          setError(msg)
+        }
+        return
       }
-      return
-    }
-    if (typeof used === "number" && used > 0) {
-      setRedeemDraft("")
-      router.refresh()
+      if (typeof used === "number" && used > 0) {
+        setRedeemedPointsState((prev) => prev + used)
+        setPointsBalanceState((prev) => Math.max(0, prev - used))
+        setRedeemDraft("")
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "تعذر استخدام النقاط حالياً")
+    } finally {
+      setRedeemSubmitting(false)
     }
   }
 
@@ -179,9 +241,9 @@ export function OrderInvoice({
     setError(null)
     setRatingSubmitting(true)
     const { error: insErr } = await supabase.from("seller_reviews").insert({
-      seller_id: order.seller_id,
+      seller_id: orderState.seller_id,
       reviewer_id: viewerUserId,
-      listing_id: order.listing_id,
+      listing_id: orderState.listing_id,
       rating: ratingValue,
       comment: ratingComment.trim() || null,
     })
@@ -190,7 +252,7 @@ export function OrderInvoice({
       setError(insErr.message)
       return
     }
-    router.refresh()
+    setExistingReviewState({ id: crypto.randomUUID(), rating: ratingValue, comment: ratingComment.trim() || null })
   }
 
   return (
@@ -199,10 +261,10 @@ export function OrderInvoice({
         <div>
           <h1 className="text-2xl font-bold">الفاتورة / الطلب</h1>
           <p className="text-muted-foreground mt-1">
-            رقم الطلب: <span className="font-mono">{order.id}</span>
+            رقم الطلب: <span className="font-mono">{orderState.id}</span>
           </p>
         </div>
-        <Badge variant={statusVariant[order.status] ?? "secondary"}>{statusLabel[order.status] ?? order.status}</Badge>
+        <Badge variant={statusVariant[orderState.status] ?? "secondary"}>{statusLabel[orderState.status] ?? orderState.status}</Badge>
       </div>
 
       {error && (
@@ -233,11 +295,11 @@ export function OrderInvoice({
                     {listing.title || "—"}
                   </Link>
                   <p className="text-sm text-muted-foreground mt-1">
-                    السعر: {order.price} د.أ
+                    السعر: {orderState.price} د.أ
                   </p>
-                  {redeemedPoints > 0 ? (
+                  {redeemedPointsState > 0 ? (
                     <p className="text-sm text-muted-foreground mt-1">
-                      خصم بالنقاط: −{discountJod.toFixed(2)} د.أ (‏{redeemedPoints} نقطة)
+                      خصم بالنقاط: −{discountJod.toFixed(2)} د.أ (‏{redeemedPointsState} نقطة)
                       <br />
                       <span className="font-medium text-foreground">المبلغ بعد الخصم: {payable.toFixed(2)} د.أ</span>
                     </p>
@@ -255,19 +317,19 @@ export function OrderInvoice({
                 <p className="text-xs text-muted-foreground">طريقة الاستلام</p>
                 <p className="font-medium flex items-center gap-2">
                   <Truck className="h-4 w-4" />
-                  {order.fulfillment_type === "delivery" ? "خدمة توصيل" : "استلام داخل الجامعة"}
+                  {orderState.fulfillment_type === "delivery" ? "خدمة توصيل" : "استلام داخل الجامعة"}
                 </p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">التاريخ</p>
-                <p className="font-medium">{new Date(order.created_at).toLocaleString("ar-JO")}</p>
+                <p className="font-medium">{new Date(orderState.created_at).toLocaleString("ar-JO")}</p>
               </div>
             </div>
 
-            {order.delivery_note ? (
+            {orderState.delivery_note ? (
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">ملاحظة</p>
-                <p className="text-sm whitespace-pre-wrap">{order.delivery_note}</p>
+                <p className="text-sm whitespace-pre-wrap">{orderState.delivery_note}</p>
               </div>
             ) : null}
           </CardContent>
@@ -349,11 +411,11 @@ export function OrderInvoice({
               <div className="rounded-md border bg-muted/30 p-3 text-sm">
                 <p className="font-medium">نقاطك</p>
                 <p className="text-muted-foreground mt-1" dir="ltr">
-                  {pointsBalance} pts
+                  {pointsBalanceState} pts
                 </p>
-                {order.status === "received" ? (
+                {orderState.status === "received" ? (
                   <p className="text-muted-foreground mt-1">
-                    تم كسب {order.points_earned} نقطة من هذه العملية.
+                    تم كسب {orderState.points_earned} نقطة من هذه العملية.
                   </p>
                 ) : (
                   <p className="text-muted-foreground mt-1">
@@ -380,9 +442,9 @@ export function OrderInvoice({
                     {redeemSubmitting ? "..." : "استخدم"}
                   </Button>
                 </div>
-                {redeemedPoints > 0 ? (
+                {redeemedPointsState > 0 ? (
                   <p className="text-muted-foreground">
-                    تم استخدام {redeemedPoints} نقطة على هذا الطلب.
+                    تم استخدام {redeemedPointsState} نقطة على هذا الطلب.
                   </p>
                 ) : null}
               </div>
@@ -395,12 +457,12 @@ export function OrderInvoice({
               <CardDescription>يظهر بعد تأكيد الاستلام.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {existingReview ? (
+              {existingReviewState ? (
                 <div className="rounded-md border p-3 text-sm">
                   <p className="font-medium">تم إرسال تقييمك</p>
-                  <p className="text-muted-foreground mt-1">النجوم: {existingReview.rating} / 5</p>
-                  {existingReview.comment ? (
-                    <p className="text-muted-foreground mt-1 whitespace-pre-wrap">{existingReview.comment}</p>
+                  <p className="text-muted-foreground mt-1">النجوم: {existingReviewState.rating} / 5</p>
+                  {existingReviewState.comment ? (
+                    <p className="text-muted-foreground mt-1 whitespace-pre-wrap">{existingReviewState.comment}</p>
                   ) : null}
                 </div>
               ) : canRate ? (
@@ -454,11 +516,11 @@ export function OrderInvoice({
               <CardDescription>آخر التحديثات</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {events.length === 0 ? (
+              {eventsState.length === 0 ? (
                 <p className="text-sm text-muted-foreground">لا يوجد سجل بعد.</p>
               ) : (
                 <div className="space-y-2">
-                  {events.slice().reverse().slice(0, 8).map((e) => (
+                  {eventsState.slice().reverse().slice(0, 8).map((e) => (
                     <div key={e.id} className="text-sm rounded-md border p-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium">{statusLabel[e.to_status] ?? e.to_status}</span>

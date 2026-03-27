@@ -82,47 +82,48 @@ export function CartContent() {
   async function reserveFirst() {
     setError(null)
     setSubmitting(true)
-    const first = rows[0]
-    if (!first) {
-      setSubmitting(false)
-      return
-    }
-    const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) {
-      setSubmitting(false)
-      router.push("/login?redirect=/cart")
-      return
-    }
-
-    // Try client-side profile upsert first, but do not block reservation on failure.
-    // The SQL RPC also attempts to create the profile server-side (SECURITY DEFINER).
-    const ensured = await ensureUserProfile(supabase, auth.user)
-    if (!ensured.ok) {
-      console.warn("[cart] ensureUserProfile failed, fallback to RPC path:", ensured.error)
-    }
-
-    const { data: orderId, error: rpcErr } = await supabase.rpc("create_order_reserve_listing", {
-      p_listing_id: first.id,
-      p_fulfillment_type: fulfillment,
-      p_note: note.trim() || null,
-    })
-
-    setSubmitting(false)
-    if (rpcErr || !orderId) {
-      const msg = rpcErr?.message || "فشل الحجز"
-      if (/does not exist|PGRST202|42883/i.test(msg)) {
-        setError("ميزة الحجز غير مفعّلة في قاعدة البيانات بعد. نفّذ scripts/020_orders_cart_points.sql في Supabase SQL Editor.")
-      } else if (/buyer_profile_missing|orders_buyer_id_fkey|row-level security/i.test(msg)) {
-        setError("فشل إنشاء حسابك تلقائياً أثناء الحجز. نفّذ أحدث scripts/020_orders_cart_points.sql في Supabase ثم سجّل خروج/دخول وجرب مجدداً.")
-      } else {
-        setError(msg)
+    try {
+      const first = rows[0]
+      if (!first) return
+      const { data: auth } = await supabase.auth.getUser()
+      if (!auth.user) {
+        router.push("/login?redirect=/cart")
+        return
       }
-      return
-    }
 
-    removeFromCart(first.id)
-    router.push(`/orders/${orderId}`)
-    router.refresh()
+      // Try client-side profile upsert first, but do not block reservation on failure.
+      // The SQL RPC also attempts to create the profile server-side (SECURITY DEFINER).
+      const ensured = await ensureUserProfile(supabase, auth.user)
+      if (!ensured.ok) {
+        console.warn("[cart] ensureUserProfile failed, fallback to RPC path:", ensured.error)
+      }
+
+      const { data: orderId, error: rpcErr } = await supabase.rpc("create_order_reserve_listing", {
+        p_listing_id: first.id,
+        p_fulfillment_type: fulfillment,
+        p_note: note.trim() || null,
+      })
+
+      if (rpcErr || !orderId) {
+        const msg = rpcErr?.message || "فشل الحجز"
+        if (/does not exist|PGRST202|42883/i.test(msg)) {
+          setError("ميزة الحجز غير مفعّلة في قاعدة البيانات بعد. نفّذ scripts/020_orders_cart_points.sql في Supabase SQL Editor.")
+        } else if (/buyer_profile_missing|orders_buyer_id_fkey|row-level security/i.test(msg)) {
+          setError("فشل إنشاء حسابك تلقائياً أثناء الحجز. نفّذ أحدث scripts/020_orders_cart_points.sql في Supabase ثم سجّل خروج/دخول وجرب مجدداً.")
+        } else {
+          setError(msg)
+        }
+        return
+      }
+
+      removeFromCart(first.id)
+      router.push(`/orders/${orderId}`)
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "تعذر إكمال الحجز حالياً")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
