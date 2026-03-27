@@ -180,6 +180,26 @@ BEGIN
     RAISE EXCEPTION 'not_authenticated';
   END IF;
 
+  -- Ensure buyer profile exists (orders.buyer_id FK -> profiles.id)
+  IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_user_id) THEN
+    INSERT INTO public.profiles (id, full_name, phone, whatsapp, email, role)
+    SELECT
+      u.id,
+      COALESCE(
+        NULLIF(TRIM(u.raw_user_meta_data ->> 'full_name'), ''),
+        NULLIF(TRIM(u.raw_user_meta_data ->> 'name'), ''),
+        NULLIF(TRIM(SPLIT_PART(COALESCE(u.email::text, ''), '@', 1)), ''),
+        'مستخدم'
+      ),
+      NULLIF(TRIM(u.raw_user_meta_data ->> 'phone'), ''),
+      NULLIF(TRIM(u.raw_user_meta_data ->> 'whatsapp'), ''),
+      u.email::text,
+      'user'
+    FROM auth.users u
+    WHERE u.id = v_user_id
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+
   IF p_fulfillment_type IS NULL OR p_fulfillment_type NOT IN ('campus_pickup', 'delivery') THEN
     RAISE EXCEPTION 'invalid_fulfillment';
   END IF;

@@ -26,6 +26,7 @@ import {
   Heart,
   Settings,
   Shield,
+  MoreVertical,
   Sun,
   Moon,
   ShoppingBag,
@@ -102,6 +103,10 @@ export function Header() {
     return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
   }
 
+  function toggleTheme() {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark")
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-3 sm:px-4">
@@ -136,33 +141,16 @@ export function Header() {
           </nav>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-3">
-            <div className="flex items-center rounded-md border border-border">
-              <button
-                className={`px-2 py-1 text-xs ${language === "ar" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                onClick={() => handleLanguageChange("ar")}
-              >
-                AR
-              </button>
-              <button
-                className={`px-2 py-1 text-xs ${language === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                onClick={() => handleLanguageChange("en")}
-              >
-                EN
-              </button>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              aria-label={t("تبديل الوضع الداكن والفاتح", "Toggle light and dark mode")}
-            >
-              {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
+          <div className="hidden md:flex items-center gap-2">
             {loading ? (
               <div className="h-9 w-24 animate-pulse bg-muted rounded-md" />
             ) : user ? (
               <>
+                <Button asChild variant="ghost" size="icon" aria-label={t("السلة", "Cart")}>
+                  <Link href="/cart">
+                    <ShoppingCart className="h-5 w-5" />
+                  </Link>
+                </Button>
                 <Button asChild size="sm" className="gap-2">
                   <Link href="/dashboard/listings/new">
                     <Plus className="h-4 w-4" />
@@ -248,9 +236,30 @@ export function Header() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label={t("الإعدادات", "Settings")}>
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => handleLanguageChange(language === "ar" ? "en" : "ar")}>
+                      {t("تبديل اللغة", "Toggle language")} ({language === "ar" ? "AR" : "EN"})
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={toggleTheme}>
+                      {resolvedTheme === "dark" ? t("الوضع الفاتح", "Light mode") : t("الوضع الداكن", "Dark mode")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <>
+                <Button asChild variant="ghost" size="icon" aria-label={t("السلة", "Cart")}>
+                  <Link href="/cart">
+                    <ShoppingCart className="h-5 w-5" />
+                  </Link>
+                </Button>
                 <Button asChild variant="outline" size="sm" className="gap-2">
                   <Link href="/login">
                     <User className="h-4 w-4" />
@@ -263,6 +272,21 @@ export function Header() {
                     {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                   </Link>
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label={t("الإعدادات", "Settings")}>
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => handleLanguageChange(language === "ar" ? "en" : "ar")}>
+                      {t("تبديل اللغة", "Toggle language")} ({language === "ar" ? "AR" : "EN"})
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={toggleTheme}>
+                      {resolvedTheme === "dark" ? t("الوضع الفاتح", "Light mode") : t("الوضع الداكن", "Dark mode")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
           </div>
@@ -294,31 +318,6 @@ export function Header() {
               </Link>
             </nav>
             <div className="flex flex-col gap-2 pt-2">
-              <div className="flex items-center rounded-md border border-border overflow-hidden">
-                <button
-                  className={`flex-1 px-2 py-1 text-xs ${language === "ar" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                  onClick={() => handleLanguageChange("ar")}
-                >
-                  AR
-                </button>
-                <button
-                  className={`flex-1 px-2 py-1 text-xs ${language === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                  onClick={() => handleLanguageChange("en")}
-                >
-                  EN
-                </button>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2"
-                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              >
-                {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                {resolvedTheme === "dark"
-                  ? t("الوضع الفاتح", "Light mode")
-                  : t("الوضع الداكن", "Dark mode")}
-              </Button>
               {user ? (
                 <>
                   <Button asChild size="sm" className="w-full gap-2">
@@ -379,6 +378,12 @@ export function Header() {
               ) : (
                 <>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                    <Link href="/cart">
+                      <ShoppingCart className="h-4 w-4" />
+                      {t("السلة", "Cart")}
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
                     <Link href="/login">
                       <User className="h-4 w-4" />
                       {t("تسجيل الدخول", "Log in")}
@@ -392,6 +397,23 @@ export function Header() {
                   </Button>
                 </>
               )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full gap-2">
+                    <MoreVertical className="h-4 w-4" />
+                    {t("الإعدادات", "Settings")}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => handleLanguageChange(language === "ar" ? "en" : "ar")}>
+                    {t("تبديل اللغة", "Toggle language")} ({language === "ar" ? "AR" : "EN"})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={toggleTheme}>
+                    {resolvedTheme === "dark" ? t("الوضع الفاتح", "Light mode") : t("الوضع الداكن", "Dark mode")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         )}

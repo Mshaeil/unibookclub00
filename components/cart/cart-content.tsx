@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { addToCart, readCart, removeFromCart } from "@/lib/cart"
 import { ShoppingCart, Trash2 } from "lucide-react"
+import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
 
 type ListingRow = {
   id: string
@@ -92,6 +93,9 @@ export function CartContent() {
       router.push("/login?redirect=/cart")
       return
     }
+
+    // Ensure profiles row exists (orders.buyer_id FK -> profiles.id)
+    await ensureUserProfile(supabase, auth.user)
 
     const { data: orderId, error: rpcErr } = await supabase.rpc("create_order_reserve_listing", {
       p_listing_id: first.id,
