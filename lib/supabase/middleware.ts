@@ -2,6 +2,30 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  const protectedRoutes = ['/dashboard', '/account', '/favorites']
+  const adminRoutes = ['/admin']
+  const authRoutes = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    // Keep supporting the legacy auth routes for backward compatibility.
+    '/auth/login',
+    '/auth/register',
+    '/auth/forgot-password',
+    '/auth/reset-password',
+  ]
+  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
+  const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route))
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route))
+  const needsAuthCheck = isProtectedRoute || isAdminRoute || isAuthRoute
+
+  // Fast path for public pages: avoid network roundtrip to Supabase in middleware.
+  if (!needsAuthCheck) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -40,31 +64,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  // Protected routes that require authentication
-  const protectedRoutes = ['/dashboard', '/account', '/favorites']
-  const adminRoutes = ['/admin']
-  const authRoutes = [
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/reset-password',
-    // Keep supporting the legacy auth routes for backward compatibility.
-    '/auth/login',
-    '/auth/register',
-    '/auth/forgot-password',
-    '/auth/reset-password',
-  ]
-  
-  const isProtectedRoute = protectedRoutes.some(route => 
-    request.nextUrl.pathname.startsWith(route)
-  )
-  const isAdminRoute = adminRoutes.some(route => 
-    request.nextUrl.pathname.startsWith(route)
-  )
-  const isAuthRoute = authRoutes.some(route => 
-    request.nextUrl.pathname.startsWith(route)
-  )
 
   // Redirect to login if accessing protected routes without auth
   if ((isProtectedRoute || isAdminRoute) && !user) {
