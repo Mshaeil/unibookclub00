@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardContent } from "@/components/dashboard/dashboard-content"
+import { DatabaseUnavailable } from "@/components/database-unavailable"
 
 export const dynamic = "force-dynamic"
 
@@ -13,14 +14,14 @@ export default async function DashboardListingsPage() {
   }
 
   // Fetch user profile
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single()
 
   // Fetch user's listings with counts
-  const { data: listings, count: totalListings } = await supabase
+  const { data: listings, count: totalListings, error: listingsError } = await supabase
     .from("listings")
     .select("*, course:courses(name_ar, name_en)", { count: "exact" })
     .eq("seller_id", user.id)
@@ -35,10 +36,14 @@ export default async function DashboardListingsPage() {
   const totalViews = listings?.reduce((acc, l) => acc + (l.views_count || 0), 0) || 0
 
   // Get favorites count for user's listings
-  const { count: totalFavorites } = await supabase
+  const { count: totalFavorites, error: favoritesError } = await supabase
     .from("favorites")
     .select("*", { count: "exact", head: true })
     .in("listing_id", listings?.map(l => l.id) || [])
+
+  if (profileError || listingsError || favoritesError) {
+    return <DatabaseUnavailable retryPath="/dashboard/listings" />
+  }
 
   return (
     <DashboardContent

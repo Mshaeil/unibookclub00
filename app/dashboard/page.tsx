@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardContent } from "@/components/dashboard/dashboard-content"
+import { DatabaseUnavailable } from "@/components/database-unavailable"
 
 export const dynamic = "force-dynamic"
 
@@ -14,7 +15,7 @@ export default async function DashboardPage() {
     redirect("/login?redirect=/dashboard")
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
@@ -28,6 +29,9 @@ export default async function DashboardPage() {
 
   if (listingsError) {
     console.error("Dashboard listings query error:", listingsError)
+  }
+  if (profileError || listingsError) {
+    return <DatabaseUnavailable retryPath="/dashboard" />
   }
 
   const activeListings = listings?.filter((l: any) => l.status === "approved").length || 0

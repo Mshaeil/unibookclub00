@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { FavoritesContent } from "@/components/favorites/favorites-content"
+import { DatabaseUnavailable } from "@/components/database-unavailable"
 
 export default async function FavoritesPage() {
   const supabase = await createClient()
@@ -14,7 +15,7 @@ export default async function FavoritesPage() {
     redirect("/login?redirect=/favorites")
   }
 
-  const { data: favorites } = await supabase
+  const { data: favorites, error } = await supabase
     .from("favorites")
     .select(`
       id,
@@ -34,6 +35,18 @@ export default async function FavoritesPage() {
     `)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1 bg-muted/30">
+          <DatabaseUnavailable retryPath="/favorites" />
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   const listings = (favorites || [])
     .map((f: { listing: unknown }) => f.listing)

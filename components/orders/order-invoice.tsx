@@ -112,7 +112,7 @@ export function OrderInvoice({
   const canCancel = order.status !== "received" && order.status !== "cancelled"
   const canSellerSetInDelivery = isSeller && order.status === "reserved"
   const canSellerSetDelivered = isSeller && (order.status === "reserved" || order.status === "in_delivery")
-  const canBuyerSetReceived = isBuyer && order.status === "delivered"
+  const canBuyerSetReceived = isBuyer && (order.status === "delivered" || order.status === "in_delivery")
   const canRate = isBuyer && order.status === "received" && !existingReview
   const canRedeem = isBuyer && order.status !== "received" && order.status !== "cancelled"
 
@@ -129,6 +129,8 @@ export function OrderInvoice({
       const msg = rpcErr.message || "فشل تحديث الحالة"
       if (/does not exist|PGRST202|42883/i.test(msg)) {
         setError("ميزة الطلبات غير مفعّلة في قاعدة البيانات بعد. نفّذ scripts/020_orders_cart_points.sql في Supabase SQL Editor.")
+      } else if (/invalid_transition/i.test(msg)) {
+        setError("الانتقال بين الحالات غير مسموح حالياً. جرّب تحديث الصفحة ثم إعادة المحاولة.")
       } else {
         setError(msg)
       }

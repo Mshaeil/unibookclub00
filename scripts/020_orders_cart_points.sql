@@ -321,7 +321,7 @@ BEGIN
       RAISE EXCEPTION 'invalid_transition';
     END IF;
   ELSIF p_next_status = 'received' THEN
-    IF v_user_id <> v_order.buyer_id OR v_prev <> 'delivered' THEN
+    IF v_user_id <> v_order.buyer_id OR v_prev NOT IN ('delivered', 'in_delivery') THEN
       RAISE EXCEPTION 'invalid_transition';
     END IF;
   ELSIF p_next_status = 'cancelled' THEN

@@ -206,7 +206,7 @@ export function AdminDashboard({
   const [newMajorName, setNewMajorName] = useState("")
   const [newCourseMajor, setNewCourseMajor] = useState("")
   const [newCourseName, setNewCourseName] = useState("")
-  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [autoRefresh, setAutoRefresh] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
@@ -418,6 +418,42 @@ export function AdminDashboard({
             : a,
         ),
       )
+    }
+    router.refresh()
+  }
+
+  async function setUserRole(userId: string, role: "user" | "admin") {
+    setError(null)
+    const { error: rpcError } = await supabase.rpc("admin_set_user_role", {
+      p_target_user_id: userId,
+      p_role: role,
+    })
+
+    if (rpcError) {
+      const m = rpcError.message || ""
+      if (/forbidden/i.test(m)) {
+        setError("هذه العملية متاحة للمسؤول الأعلى فقط.")
+        return
+      }
+      if (/cannot_modify_self/i.test(m)) {
+        setError("لا يمكنك تعديل دور حسابك من هنا.")
+        return
+      }
+      if (/target_not_admin/i.test(m)) {
+        setError("الحساب المحدد ليس مديراً حالياً.")
+        return
+      }
+      if (/does not exist|PGRST202|42883/i.test(m)) {
+        setError("ميزة تغيير دور المستخدم غير مفعلة في قاعدة البيانات بعد. نفّذ scripts/019_super_admins_config.sql في Supabase SQL Editor.")
+        return
+      }
+      setError(`فشل تغيير دور المستخدم: ${rpcError.message}`)
+      return
+    }
+
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)))
+    if (isSuperAdmin && role === "user") {
+      setSuperAdmins((prev) => prev.filter((a) => a.id !== userId))
     }
     router.refresh()
   }
@@ -938,7 +974,7 @@ export function AdminDashboard({
                   يظهر هذا القسم فقط عند إضافة بريدك إلى جدول{" "}
                   <code className="rounded bg-muted px-1">public.super_admins</code> (نفّذ{" "}
                   <code className="rounded bg-muted px-1">scripts/019_super_admins_config.sql</code>). يمكنك تعليق
-                  أو حظر حسابات المدراء أو إعادة تفعيلها (لا يمكن تعديل حسابك من هنا).
+                  أو حظر حسابات المدراء أو إعادة تفعيلها، وكذلك إزالة صلاحية الأدمن (لا يمكن تعديل حسابك من هنا).
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1022,6 +1058,18 @@ export function AdminDashboard({
                                   حظر
                                 </Button>
                               ) : null}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
+                                onClick={() => {
+                                  if (window.confirm("إزالة صلاحية الأدمن من هذا الحساب وتحويله إلى مستخدم عادي؟")) {
+                                    void setUserRole(row.id, "user")
+                                  }
+                                }}
+                              >
+                                إزالة الأدمن
+                              </Button>
                             </div>
                           )}
                         </TableCell>

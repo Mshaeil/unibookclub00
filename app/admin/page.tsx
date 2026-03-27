@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AdminDashboard } from "@/components/admin/admin-dashboard"
+import { DatabaseUnavailable } from "@/components/database-unavailable"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -137,6 +138,20 @@ if (rejectedCountRes.error) {
 }
 if (homeFeaturedRes.error) {
   console.error("Admin home featured error:", homeFeaturedRes.error)
+}
+
+const hasAdminDbFailure =
+  Boolean(listingsResult.error) ||
+  Boolean(adminUsersRpc.error) ||
+  Boolean(reportsResult.error) ||
+  (Boolean(salesResult.error) && salesResult.error?.code !== "PGRST205") ||
+  (Boolean(sellerReviewsResult.error) && sellerReviewsResult.error?.code !== "PGRST205") ||
+  Boolean(facultiesResult.error) ||
+  Boolean(majorsResult.error) ||
+  Boolean(coursesResult.error)
+
+if (hasAdminDbFailure) {
+  return <DatabaseUnavailable retryPath="/admin" />
 }
 
 type RawListingRow = {

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { PurchasesContent } from "@/components/dashboard/purchases-content"
+import { DatabaseUnavailable } from "@/components/database-unavailable"
 
 export const dynamic = "force-dynamic"
 
@@ -30,6 +31,7 @@ export default async function PurchasesPage() {
 
   if (salesError) {
     console.error("Purchases query error:", salesError)
+    return <DatabaseUnavailable retryPath="/dashboard/purchases" />
   }
 
   const rows = sales ?? []

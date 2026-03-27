@@ -175,3 +175,69 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_list_admins() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.admin_list_admins() TO authenticated;
 
+-- ---------------------------------------------------------------------------
+-- New: change user role (super-admin only)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.admin_set_user_role(
+  p_target_user_id uuid,
+  p_role text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_target_role text;
+BEGIN
+  IF NOT public.is_super_admin() THEN
+    RAISE EXCEPTION 'forbidden';
+  END IF;
+
+  IF p_target_user_id = auth.uid() THEN
+    RAISE EXCEPTION 'cannot_modify_self';
+  END IF;
+
+  IF p_role IS NULL OR p_role NOT IN ('user', 'admin') THEN
+    RAISE EXCEPTION 'invalid_role';
+  END IF;
+
+  SELECT role INTO v_target_role
+  FROM public.profiles
+  WHERE id = p_target_user_id;
+
+  IF p_role = 'user' AND COALESCE(v_target_role, 'user') <> 'admin' THEN
+    RAISE EXCEPTION 'target_not_admin';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.profiles WHERE id = p_target_user_id) THEN
+    UPDATE public.profiles
+    SET
+      role = p_role,
+      updated_at = now()
+    WHERE id = p_target_user_id;
+  ELSE
+    INSERT INTO public.profiles (id, full_name, phone, whatsapp, email, role, is_active, account_status)
+    SELECT
+      u.id,
+      COALESCE(
+        NULLIF(TRIM(u.raw_user_meta_data ->> 'full_name'), ''),
+        NULLIF(TRIM(u.raw_user_meta_data ->> 'name'), ''),
+        NULLIF(TRIM(SPLIT_PART(COALESCE(u.email::text, ''), '@', 1)), ''),
+        'مستخدم'
+      ),
+      NULL,
+      NULL,
+      u.email::text,
+      p_role,
+      true,
+      'active'
+    FROM auth.users u
+    WHERE u.id = p_target_user_id;
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_set_user_role(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_set_user_role(uuid, text) TO authenticated;
+

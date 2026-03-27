@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { AccountContent } from "@/components/account/account-content"
+import { DatabaseUnavailable } from "@/components/database-unavailable"
 
 export default async function AccountPage() {
   const supabase = await createClient()
@@ -14,7 +15,7 @@ export default async function AccountPage() {
     redirect("/login?redirect=/account")
   }
 
-  const [{ data: profile }, { data: listings }] = await Promise.all([
+  const [{ data: profile, error: profileError }, { data: listings, error: listingsError }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, phone, whatsapp, faculty_id, major_id")
@@ -66,6 +67,24 @@ export default async function AccountPage() {
       name_ar: m.name,
     })) ??
     []) as { id: string; faculty_id: string; name_ar: string }[]
+
+  const hasDbError =
+    Boolean(profileError) ||
+    Boolean(listingsError) ||
+    (Boolean(facultiesArResult.error) && !facultiesNameResult.data) ||
+    (Boolean(majorsArResult.error) && !majorsNameResult.data)
+
+  if (hasDbError) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1 bg-muted/30">
+          <DatabaseUnavailable retryPath="/account" />
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   const hydratedProfile = profile
     ? {

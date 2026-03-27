@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useTheme } from "next-themes"
 import { useLanguage, useTranslate } from "@/components/language-provider"
@@ -40,6 +40,7 @@ type Profile = {
 
 export function Header() {
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
   const { resolvedTheme, setTheme } = useTheme()
   const { language, setLanguage } = useLanguage()
@@ -91,10 +92,28 @@ export function Header() {
   }
 
   async function handleLogout() {
+    setMobileMenuOpen(false)
     await supabase.auth.signOut()
     router.push("/")
     router.refresh()
   }
+
+  function closeMobileMenu() {
+    setMobileMenuOpen(false)
+  }
+
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [mobileMenuOpen])
 
   const getInitials = (name: string | null) => {
     if (!name) return "U"
@@ -300,18 +319,18 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-4 border-t border-border/50">
+          <div className="md:hidden max-h-[calc(100vh-4rem)] overflow-y-auto py-4 space-y-4 border-t border-border/50">
             <nav className="flex flex-col gap-3">
-              <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              <Link href="/" onClick={closeMobileMenu} className="text-sm font-medium text-foreground hover:text-primary transition-colors">
                 {t("الرئيسية", "Home")}
               </Link>
-              <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              <Link href="/browse" onClick={closeMobileMenu} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                 {t("تصفح الكتب والملخصات", "Browse books & summaries")}
               </Link>
-              <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              <Link href="/#faculties" onClick={closeMobileMenu} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                 {t("الكليات", "Faculties")}
               </Link>
-              <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              <Link href="/how-it-works" onClick={closeMobileMenu} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                 {t("كيف يعمل", "How it works")}
               </Link>
             </nav>
@@ -319,50 +338,50 @@ export function Header() {
               {user ? (
                 <>
                   <Button asChild size="sm" className="w-full gap-2">
-                    <Link href="/dashboard/listings/new">
+                    <Link href="/dashboard/listings/new" onClick={closeMobileMenu}>
                       <Plus className="h-4 w-4" />
                       {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/dashboard">
+                    <Link href="/dashboard" onClick={closeMobileMenu}>
                       <LayoutDashboard className="h-4 w-4" />
                       {t("لوحة التحكم", "Dashboard")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/dashboard/orders">
+                    <Link href="/dashboard/orders" onClick={closeMobileMenu}>
                       <ShoppingBag className="h-4 w-4" />
                       {t("طلباتي", "My orders")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/cart">
+                    <Link href="/cart" onClick={closeMobileMenu}>
                       <ShoppingCart className="h-4 w-4" />
                       {t("السلة", "Cart")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/dashboard/purchases">
+                    <Link href="/dashboard/purchases" onClick={closeMobileMenu}>
                       <ShoppingBag className="h-4 w-4" />
                       {t("مشترياتك", "Your purchases")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/favorites">
+                    <Link href="/favorites" onClick={closeMobileMenu}>
                       <Heart className="h-4 w-4" />
                       {t("المفضلة", "Favorites")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/account">
+                    <Link href="/account" onClick={closeMobileMenu}>
                       <Settings className="h-4 w-4" />
                       {t("إعدادات الحساب", "Account settings")}
                     </Link>
                   </Button>
                   {profile?.role === "admin" && (
                     <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                      <Link href="/admin">
+                      <Link href="/admin" onClick={closeMobileMenu}>
                         <Shield className="h-4 w-4" />
                         {t("لوحة الإدارة", "Admin")}
                       </Link>
@@ -376,19 +395,19 @@ export function Header() {
               ) : (
                 <>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/cart">
+                    <Link href="/cart" onClick={closeMobileMenu}>
                       <ShoppingCart className="h-4 w-4" />
                       {t("السلة", "Cart")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/login">
+                    <Link href="/login" onClick={closeMobileMenu}>
                       <User className="h-4 w-4" />
                       {t("تسجيل الدخول", "Log in")}
                     </Link>
                   </Button>
                   <Button asChild size="sm" className="w-full gap-2">
-                    <Link href="/register">
+                    <Link href="/register" onClick={closeMobileMenu}>
                       <Plus className="h-4 w-4" />
                       {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                     </Link>
@@ -404,10 +423,16 @@ export function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuItem onClick={() => handleLanguageChange(language === "ar" ? "en" : "ar")}>
+                  <DropdownMenuItem onClick={() => {
+                    handleLanguageChange(language === "ar" ? "en" : "ar")
+                    closeMobileMenu()
+                  }}>
                     {t("تبديل اللغة", "Toggle language")} ({language === "ar" ? "AR" : "EN"})
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={toggleTheme}>
+                  <DropdownMenuItem onClick={() => {
+                    toggleTheme()
+                    closeMobileMenu()
+                  }}>
                     {resolvedTheme === "dark" ? t("الوضع الفاتح", "Light mode") : t("الوضع الداكن", "Dark mode")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>

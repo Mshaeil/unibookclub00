@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { OrdersContent } from "@/components/dashboard/orders-content"
+import { DatabaseUnavailable } from "@/components/database-unavailable"
 
 export const dynamic = "force-dynamic"
 
@@ -30,6 +31,7 @@ export default async function OrdersPage() {
 
   if (error && error.code !== "PGRST205") {
     console.error("Orders query error:", error)
+    return <DatabaseUnavailable retryPath="/dashboard/orders" />
   }
 
   return <OrdersContent viewerUserId={user.id} rows={(orders ?? []) as never} />
