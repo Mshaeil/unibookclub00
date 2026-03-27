@@ -94,15 +94,11 @@ export function CartContent() {
       return
     }
 
+    // Try client-side profile upsert first, but do not block reservation on failure.
+    // The SQL RPC also attempts to create the profile server-side (SECURITY DEFINER).
     const ensured = await ensureUserProfile(supabase, auth.user)
     if (!ensured.ok) {
-      setSubmitting(false)
-      setError(
-        ensured.error.includes("row-level security")
-          ? "تعذّر تجهيز حسابك. جرّب تسجيل الخروج والدخول مجدداً أو تواصل مع الدعم."
-          : ensured.error,
-      )
-      return
+      console.warn("[cart] ensureUserProfile failed, fallback to RPC path:", ensured.error)
     }
 
     const { data: orderId, error: rpcErr } = await supabase.rpc("create_order_reserve_listing", {
@@ -116,6 +112,8 @@ export function CartContent() {
       const msg = rpcErr?.message || "فشل الحجز"
       if (/does not exist|PGRST202|42883/i.test(msg)) {
         setError("ميزة الحجز غير مفعّلة في قاعدة البيانات بعد. نفّذ scripts/020_orders_cart_points.sql في Supabase SQL Editor.")
+      } else if (/buyer_profile_missing|orders_buyer_id_fkey|row-level security/i.test(msg)) {
+        setError("فشل إنشاء حسابك تلقائياً أثناء الحجز. نفّذ أحدث scripts/020_orders_cart_points.sql في Supabase ثم سجّل خروج/دخول وجرب مجدداً.")
       } else {
         setError(msg)
       }

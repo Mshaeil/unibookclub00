@@ -157,51 +157,21 @@ export function AccountContent({
       }
     }
 
-    const payload = {
-      id: user.id,
-      full_name: trimmedName,
-      phone: trimmedPhone || null,
-      whatsapp: trimmedWhatsapp || null,
-      faculty_id: facultyId || null,
-      major_id: majorId || null,
-    }
+    const { error: profileRpcError } = await supabase.rpc("upsert_my_profile", {
+      p_full_name: trimmedName,
+      p_phone: trimmedPhone || null,
+      p_whatsapp: trimmedWhatsapp || null,
+      p_faculty_id: facultyId || null,
+      p_major_id: majorId || null,
+    })
 
-    const { data: updatedProfile, error: updateError } = await supabase
-      .from("profiles")
-      .update(payload)
-      .eq("id", user.id)
-      .select("id")
-      .maybeSingle()
-
-    if (updateError) {
+    if (profileRpcError) {
       setSaving(false)
-      setError(mapSupabaseProfileError(updateError.message))
-      return
-    }
-
-    if (!updatedProfile) {
-      const { data: insertedProfile, error: insertError } = await supabase
-        .from("profiles")
-        .insert(payload)
-        .select("id")
-        .maybeSingle()
-
-      setSaving(false)
-      if (insertError) {
-        setError(mapSupabaseProfileError(insertError.message))
-        return
+      if (/PGRST202|does not exist|42883/i.test(profileRpcError.message)) {
+        setError("ميزة تحديث الملف الشخصي غير مفعّلة بقاعدة البيانات بعد. نفّذ scripts/022_profile_upsert_rpc.sql في Supabase SQL Editor.")
+      } else {
+        setError(mapSupabaseProfileError(profileRpcError.message))
       }
-      if (!insertedProfile) {
-        setError("لم يتم حفظ البيانات. أعد المحاولة.")
-        return
-      }
-      if (emailChangeRequested) {
-        window.alert(
-          "طُلب تغيير البريد. راجع بريدك الجديد لإكمال التحديث إن وُجد رابط تأكيد من مزوّد تسجيل الدخول.",
-        )
-      }
-      setEditing(false)
-      router.refresh()
       return
     }
 

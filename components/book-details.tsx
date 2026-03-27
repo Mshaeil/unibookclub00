@@ -24,6 +24,7 @@ import type { ReportReason } from "@/lib/types/database"
 import { useLanguage, useTranslate } from "@/components/language-provider"
 import { discountPercentLabel, isPromoDiscountActive } from "@/lib/utils/listing-discount"
 import { addToCart, readCart } from "@/lib/cart"
+import { ensureMyProfileRpc } from "@/lib/auth/ensure-my-profile-rpc"
 import {
   BookOpen,
   Calendar,
@@ -228,6 +229,19 @@ export function BookDetails({ listing, relatedListings, viewer, sellerRating }: 
       return
     }
 
+    const ensured = await ensureMyProfileRpc(supabase)
+    if (!ensured.ok) {
+      window.alert(
+        /does not exist|PGRST202|42883/i.test(ensured.error)
+          ? t(
+              "ميزة تجهيز الحساب غير مفعّلة بقاعدة البيانات بعد. نفّذ scripts/023_ensure_my_profile_rpc.sql في Supabase.",
+              "Account setup RPC is missing in database. Run scripts/023_ensure_my_profile_rpc.sql in Supabase.",
+            )
+          : t("تعذر تجهيز حسابك. جرّب تسجيل الخروج والدخول.", "Could not prepare your account. Please sign out and sign in again."),
+      )
+      return
+    }
+
     if (isWishlisted) {
       await supabase
         .from("favorites")
@@ -252,6 +266,20 @@ export function BookDetails({ listing, relatedListings, viewer, sellerRating }: 
     }
 
     setReporting(true)
+
+    const ensured = await ensureMyProfileRpc(supabase)
+    if (!ensured.ok) {
+      setReporting(false)
+      window.alert(
+        /does not exist|PGRST202|42883/i.test(ensured.error)
+          ? t(
+              "ميزة تجهيز الحساب غير مفعّلة بقاعدة البيانات بعد. نفّذ scripts/023_ensure_my_profile_rpc.sql في Supabase.",
+              "Account setup RPC is missing in database. Run scripts/023_ensure_my_profile_rpc.sql in Supabase.",
+            )
+          : t("تعذر تجهيز حسابك لإرسال البلاغ.", "Could not prepare your account for report submission."),
+      )
+      return
+    }
 
     // Reports require reporter_id to exist in profiles.
     // Read-only check avoids touching profiles and triggering RLS on writes.

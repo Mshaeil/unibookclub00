@@ -28,6 +28,7 @@ import {
   LISTING_DISCOUNT_RECOMMENDED_PCTS,
   priceAfterPercentDiscount,
 } from "@/lib/utils/listing-discount"
+import { ensureMyProfileRpc } from "@/lib/auth/ensure-my-profile-rpc"
 
 type Faculty = { id: string; name: string }
 type Major = { id: string; faculty_id: string; name: string }
@@ -126,6 +127,15 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("يرجى تسجيل الدخول")
+
+      const ensured = await ensureMyProfileRpc(supabase)
+      if (!ensured.ok) {
+        throw new Error(
+          /does not exist|PGRST202|42883/i.test(ensured.error)
+            ? "ميزة تجهيز الحساب غير مفعّلة بقاعدة البيانات بعد. نفّذ scripts/023_ensure_my_profile_rpc.sql في Supabase SQL Editor."
+            : "تعذر تجهيز حسابك للنشر. سجّل خروج/دخول ثم أعد المحاولة.",
+        )
+      }
 
       // Upload images (to Supabase Storage via /api/upload)
       setUploading(true)
