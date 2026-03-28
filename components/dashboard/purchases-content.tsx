@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { FileDown, Star } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTranslate } from "@/components/language-provider"
+import { formatJod } from "@/lib/utils"
 
 type SaleRow = {
   id: string
@@ -112,8 +113,7 @@ export function PurchasesContent({ sales, reviewedListingIds }: Props) {
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-lg line-clamp-2">{listing.title}</CardTitle>
                     <CardDescription className="mt-1">
-                      {t("البائع:", "Seller:")} {seller.full_name || "—"} · {listing.price}{" "}
-                      د.أ
+                      {t("البائع:", "Seller:")} {seller.full_name || "—"} · {formatJod(listing.price)} د.أ
                     </CardDescription>
                     <p className="text-xs text-muted-foreground mt-2">
                       {t("مرجع العملية:", "Reference:")} {sale.reference_code}

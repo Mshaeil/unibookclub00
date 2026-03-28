@@ -22,6 +22,8 @@ import {
 } from "lucide-react"
 import { useLanguage, useTranslate } from "@/components/language-provider"
 import { discountPercentLabel, isPromoDiscountActive } from "@/lib/utils/listing-discount"
+import { formatJod } from "@/lib/utils"
+import { staggerStyle } from "@/lib/motion"
 
 type Listing = {
   id: string
@@ -469,20 +471,26 @@ export function BrowseContent({
             <>
               {/* Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                {listings.map((listing) => {
+                {listings.map((listing, index) => {
                   const availability = listing.availability || "available"
                   const showPromo = isPromoDiscountActive(listing)
                   const promoPct = discountPercentLabel(listing)
                   return (
-                  <Link key={listing.id} href={`/book/${listing.id}`}>
-                    <Card className="h-full overflow-hidden transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1">
-                      <div className="relative aspect-[4/3] bg-muted">
+                  <Link
+                    key={listing.id}
+                    href={`/book/${listing.id}`}
+                    className="group block touch-manipulation ubc-reveal-item ubc-content-auto"
+                    style={staggerStyle(index)}
+                  >
+                    <Card className="ubc-market-card h-full overflow-hidden border-border/60 shadow-sm hover:shadow-xl">
+                      <div className="ubc-market-card-media relative aspect-[4/3] bg-muted">
                         {listing.images?.[0] ? (
                           <Image
                             src={`/api/file?pathname=${encodeURIComponent(listing.images[0])}`}
                             alt={listing.title}
                             fill
                             className="object-cover"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center">
@@ -523,11 +531,11 @@ export function BrowseContent({
                               listing.original_price != null &&
                               Number(listing.original_price) > Number(listing.price) && (
                                 <span className="text-sm text-muted-foreground line-through">
-                                  {listing.original_price} {CURRENCY_JOD}
+                                  {formatJod(listing.original_price)} {CURRENCY_JOD}
                                 </span>
                               )}
                             <span className="text-lg font-bold text-primary">
-                              {listing.price} {CURRENCY_JOD}
+                              {formatJod(listing.price)} {CURRENCY_JOD}
                             </span>
                           </div>
                           <span className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -545,7 +553,8 @@ export function BrowseContent({
                       </CardContent>
                     </Card>
                   </Link>
-                )})}
+                  )
+                })}
               </div>
 
               {/* Pagination */}

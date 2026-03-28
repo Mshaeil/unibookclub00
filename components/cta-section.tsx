@@ -10,9 +10,9 @@ export function CTASection() {
   return (
     <section id="about" className="py-16 md:py-24 bg-primary text-primary-foreground relative overflow-hidden">
       {/* Background Pattern */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary-foreground/5 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary-foreground/5 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
+      <div className="absolute inset-0 motion-reduce:opacity-80">
+        <div className="ubc-hero-blob ubc-hero-blob-a absolute top-0 right-0 h-96 w-96 translate-x-1/2 -translate-y-1/2 transform rounded-full bg-primary-foreground/5 blur-3xl" />
+        <div className="ubc-hero-blob ubc-hero-blob-b absolute bottom-0 left-0 h-80 w-80 -translate-x-1/2 translate-y-1/2 transform rounded-full bg-primary-foreground/5 blur-3xl" />
       </div>
 
       <div className="container mx-auto px-4 relative">

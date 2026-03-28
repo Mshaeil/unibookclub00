@@ -10,6 +10,7 @@ import {
   GraduationCap
 } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
+import { staggerStyle } from "@/lib/motion"
 
 const faculties = [
   {
@@ -80,10 +81,11 @@ export function FacultiesSection() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {faculties.map((faculty) => (
-            <Card 
+          {faculties.map((faculty, index) => (
+            <Card
               key={faculty.id}
-              className="group cursor-pointer border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg"
+              style={staggerStyle(index, 55, 8)}
+              className="ubc-reveal-item ubc-market-card group cursor-pointer border-border/50 transition-shadow duration-300 hover:border-primary/30 hover:shadow-xl"
             >
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">

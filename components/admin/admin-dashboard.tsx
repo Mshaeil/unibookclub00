@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch"
 import Link from "next/link"
 import { CheckCircle, ExternalLink, MessageCircle, RefreshCw, ShieldAlert, Trash2, XCircle } from "lucide-react"
+import { formatJod } from "@/lib/utils"
 
 const AdminSecurityPanel = dynamic(
   () => import("@/components/admin/admin-security-panel").then((m) => m.AdminSecurityPanel),
@@ -783,7 +784,7 @@ export function AdminDashboard({
                         </div>
                       </TableCell>
                       <TableCell>{listing.course?.name ?? "-"}</TableCell>
-                      <TableCell>{listing.price} د.أ</TableCell>
+                      <TableCell>{formatJod(listing.price)} د.أ</TableCell>
                       <TableCell>
                         <Badge variant="outline">{availabilityLabel[listing.availability] ?? listing.availability}</Badge>
                       </TableCell>

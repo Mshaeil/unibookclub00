@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useTranslate } from "@/components/language-provider"
+import { formatJod } from "@/lib/utils"
 
 type Row = {
   id: string
@@ -102,7 +103,7 @@ export function OrdersContent({ viewerUserId, rows }: { viewerUserId: string; ro
                     </div>
                     <div className="flex-1 text-sm">
                       <p className="text-muted-foreground">
-                        {t("السعر:", "Price:")} {r.price} د.أ
+                        {t("السعر:", "Price:")} {formatJod(r.price)} د.أ
                       </p>
                       <p className="text-muted-foreground mt-1">
                         {t("الدور:", "Role:")} {isBuyer ? t("مشتري", "Buyer") : t("بائع", "Seller")}

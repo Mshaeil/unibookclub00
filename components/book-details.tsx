@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea"
 import type { ReportReason } from "@/lib/types/database"
 import { useLanguage, useTranslate } from "@/components/language-provider"
 import { discountPercentLabel, isPromoDiscountActive } from "@/lib/utils/listing-discount"
+import { formatJod, formatRatingOneDecimal } from "@/lib/utils"
 import { addToCart, readCart } from "@/lib/cart"
 import { ensureMyProfileRpc } from "@/lib/auth/ensure-my-profile-rpc"
 import {
@@ -559,10 +560,10 @@ export function BookDetails({ listing, relatedListings, viewer, sellerRating }: 
                     listing.original_price != null &&
                     Number(listing.original_price) > Number(listing.price) && (
                       <span className="text-2xl text-muted-foreground line-through decoration-destructive/60">
-                        {listing.original_price} د.أ
+                        {formatJod(listing.original_price)} د.أ
                       </span>
                     )}
-                  <span className="text-4xl font-bold text-primary">{listing.price}</span>
+                  <span className="text-4xl font-bold text-primary">{formatJod(listing.price)}</span>
                   <span className="text-lg text-muted-foreground">د.أ</span>
                   {showPromoDiscount &&
                     listing.original_price != null &&
@@ -656,7 +657,7 @@ export function BookDetails({ listing, relatedListings, viewer, sellerRating }: 
                       </div>
                       {sellerRating && sellerRating.count > 0 ? (
                         <div className="mt-1 text-sm text-muted-foreground" dir="ltr">
-                          <span className="font-medium text-foreground">{sellerRating.avg.toFixed(1)}</span> / 5 •{" "}
+                          <span className="font-medium text-foreground">{formatRatingOneDecimal(sellerRating.avg)}</span> / 5 •{" "}
                           {sellerRating.count} reviews
                         </div>
                       ) : (
@@ -896,11 +897,11 @@ export function BookDetails({ listing, relatedListings, viewer, sellerRating }: 
                         related.original_price != null &&
                         Number(related.original_price) > Number(related.price) && (
                           <span className="text-sm text-muted-foreground line-through">
-                            {related.original_price} د.أ
+                            {formatJod(related.original_price)} د.أ
                           </span>
                         )}
                       <p className="text-primary font-semibold">
-                        {related.price} د.أ
+                        {formatJod(related.price)} د.أ
                       </p>
                       {isPromoDiscountActive(related) && relPct != null && (
                         <Badge variant="outline" className="text-xs text-destructive border-destructive/30">

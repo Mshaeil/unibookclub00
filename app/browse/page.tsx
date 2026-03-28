@@ -150,31 +150,29 @@ export default async function BrowsePage({
   const to = from + perPage - 1
   query = query.range(from, to)
 
-  const { data: listings, count, error } = await query
+  const soldListingsForTopQuery = supabase
+    .from("listings")
+    .select("seller_id, seller:profiles!listings_seller_id_fkey(full_name)")
+    .eq("status", "sold")
+
+  const [listRes, facRes, majRes, courRes, soldRes] = await Promise.all([
+    query,
+    supabase.from("faculties").select("id, name_ar, name_en").order("name_ar", { ascending: true }),
+    supabase.from("majors").select("id, faculty_id, name_ar, name_en").order("name_ar", { ascending: true }),
+    supabase.from("courses").select("id, major_id, code, name_ar, name_en").order("name_ar", { ascending: true }),
+    soldListingsForTopQuery,
+  ])
+
+  const { data: listings, count, error } = listRes
 
   if (error) {
     console.error("Browse query error:", error)
   }
 
-  const { data: faculties } = await supabase
-    .from("faculties")
-    .select("id, name_ar, name_en")
-    .order("name_ar", { ascending: true })
-
-  const { data: majors } = await supabase
-    .from("majors")
-    .select("id, faculty_id, name_ar, name_en")
-    .order("name_ar", { ascending: true })
-
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("id, major_id, code, name_ar, name_en")
-    .order("name_ar", { ascending: true })
-
-  const { data: soldListingsForTopSellers } = await supabase
-    .from("listings")
-    .select("seller_id, seller:profiles!listings_seller_id_fkey(full_name)")
-    .eq("status", "sold")
+  const { data: faculties } = facRes
+  const { data: majors } = majRes
+  const { data: courses } = courRes
+  const { data: soldListingsForTopSellers } = soldRes
 
   const topSellerMap = new Map<string, { seller_id: string; full_name: string; sold_count: number }>()
   for (const row of soldListingsForTopSellers || []) {

@@ -15,6 +15,7 @@ import {
   Truck,
   Clock
 } from "lucide-react"
+import { formatJod } from "@/lib/utils"
 
 export interface Book {
   id: number
@@ -91,14 +92,19 @@ export function BookCard({ book }: BookCardProps) {
   const isUnavailable = book.status !== "available"
 
   return (
-    <Card className={`group overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg ${isUnavailable ? 'opacity-75' : ''}`}>
+    <Card
+      className={`ubc-market-card group overflow-hidden border-border/50 transition-shadow duration-300 hover:border-primary/30 hover:shadow-xl ${isUnavailable ? "opacity-75" : ""}`}
+    >
       <Link href={`/book/${book.id}`}>
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        <div
+          className={`ubc-market-card-media relative aspect-[4/3] overflow-hidden bg-muted ${isUnavailable ? "ubc-no-media-zoom" : ""}`}
+        >
           <Image
             src={book.image}
             alt={book.title}
             fill
-            className={`object-cover transition-transform duration-300 ${isUnavailable ? '' : 'group-hover:scale-105'}`}
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 400px"
           />
           
           {/* Status Overlay */}
@@ -177,12 +183,12 @@ export function BookCard({ book }: BookCardProps) {
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-primary">
-              {book.price}
+              {formatJod(book.price)}
             </span>
             <span className="text-sm text-muted-foreground">د.أ</span>
-            {book.originalPrice && (
+            {book.originalPrice != null && book.originalPrice > 0 && (
               <span className="text-sm text-muted-foreground line-through">
-                {book.originalPrice}
+                {formatJod(book.originalPrice)}
               </span>
             )}
           </div>

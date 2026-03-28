@@ -51,6 +51,7 @@ import {
   LISTING_DISCOUNT_PCT_VALUES,
   LISTING_DISCOUNT_RECOMMENDED_PCTS,
 } from "@/lib/utils/listing-discount"
+import { formatJod } from "@/lib/utils"
 import {
   Select,
   SelectContent,
@@ -441,10 +442,10 @@ export function DashboardContent({ profile, listings, stats, showStats = true }:
                             listing.original_price != null &&
                             Number(listing.original_price) > Number(listing.price) && (
                               <span className="line-through text-muted-foreground decoration-destructive/50">
-                                {listing.original_price} د.أ
+                                {formatJod(listing.original_price)} د.أ
                               </span>
                             )}
-                          <span className="font-semibold text-primary">{listing.price} د.أ</span>
+                          <span className="font-semibold text-primary">{formatJod(listing.price)} د.أ</span>
                           {promoActive && pct != null && (
                             <Badge variant="outline" className="text-destructive border-destructive/40 text-xs">
                               −{pct}%

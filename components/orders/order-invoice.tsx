@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Truck, User, MessageCircle, Phone, RefreshCw, Star } from "lucide-react"
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
+import { formatJod, formatJodStrict, roundMoneyJod } from "@/lib/utils"
 
 type OrderRow = {
   id: string
@@ -198,8 +199,10 @@ export function OrderInvoice({
 
   const whatsappDigits = (seller?.whatsapp || seller?.phone || "").replace(/\D/g, "")
 
-  const discountJod = Math.min(orderState.price, Math.max(0, redeemedPointsState / 100))
-  const payable = Math.max(0, Number(orderState.price) - discountJod)
+  const discountJod = roundMoneyJod(
+    Math.min(Number(orderState.price), Math.max(0, redeemedPointsState / 100)),
+  )
+  const payable = roundMoneyJod(Math.max(0, Number(orderState.price) - discountJod))
 
   async function redeemPoints() {
     const n = Number(redeemDraft)
@@ -295,13 +298,13 @@ export function OrderInvoice({
                     {listing.title || "—"}
                   </Link>
                   <p className="text-sm text-muted-foreground mt-1">
-                    السعر: {orderState.price} د.أ
+                    السعر: {formatJod(orderState.price)} د.أ
                   </p>
                   {redeemedPointsState > 0 ? (
                     <p className="text-sm text-muted-foreground mt-1">
-                      خصم بالنقاط: −{discountJod.toFixed(2)} د.أ (‏{redeemedPointsState} نقطة)
+                      خصم بالنقاط: −{formatJodStrict(discountJod)} د.أ (‏{redeemedPointsState} نقطة)
                       <br />
-                      <span className="font-medium text-foreground">المبلغ بعد الخصم: {payable.toFixed(2)} د.أ</span>
+                      <span className="font-medium text-foreground">المبلغ بعد الخصم: {formatJodStrict(payable)} د.أ</span>
                     </p>
                   ) : null}
                 </div>

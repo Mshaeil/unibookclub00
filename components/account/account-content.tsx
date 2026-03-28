@@ -13,6 +13,7 @@ import { BookOpen, LogOut, Loader2, User, Edit } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { isValidTenDigitPhone, sanitizePhoneDigits, toTenDigitPhone } from "@/lib/utils/phone"
 import { isValidEmailFormat, normalizeEmail } from "@/lib/utils/email"
+import { formatJod } from "@/lib/utils"
 
 type Faculty = { id: string; name_ar?: string; name?: string }
 type Major = { id: string; faculty_id: string; name_ar?: string; name?: string }
@@ -392,7 +393,7 @@ export function AccountContent({
                         {listing.course?.name_ar ?? listing.course?.name ?? "-"}
                       </p>
                       <div className="flex gap-2 mt-1">
-                        <span className="text-primary font-semibold">{listing.price} د.أ</span>
+                        <span className="text-primary font-semibold">{formatJod(listing.price)} د.أ</span>
                         <span className="text-muted-foreground">•</span>
                         <span>{statusLabels[listing.status] || listing.status}</span>
                         <span className="text-muted-foreground">•</span>

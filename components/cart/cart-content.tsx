@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { readCart, removeFromCart } from "@/lib/cart"
 import { ShoppingCart, Trash2 } from "lucide-react"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
+import { formatJod } from "@/lib/utils"
 
 type ListingRow = {
   id: string
@@ -175,7 +176,7 @@ export function CartContent() {
                     <Link href={`/book/${r.id}`} className="font-medium hover:underline line-clamp-1">
                       {r.title}
                     </Link>
-                    <p className="text-sm text-muted-foreground mt-1">{r.price} د.أ</p>
+                    <p className="text-sm text-muted-foreground mt-1">{formatJod(r.price)} د.أ</p>
                     {(r.status !== "approved" || r.availability !== "available") && (
                       <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                         هذا العرض غير متاح للحجز الآن (قد يكون محجوزاً/مباعاً).

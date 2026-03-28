@@ -3,6 +3,7 @@ import { Tajawal, Cairo } from 'next/font/google'
 import { ThemeProvider } from "@/components/theme-provider"
 import { LanguageProvider } from "@/components/language-provider"
 import { DeferredVitals } from "@/components/deferred-vitals"
+import { NavigationProgress } from "@/components/navigation-progress"
 import './globals.css'
 
 const tajawal = Tajawal({ 
@@ -22,9 +23,32 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: 'UniBookClub — كتب وملخصات جامعة العلوم التطبيقية',
+  title: {
+    default: 'UniBookClub — سوق الكتب والملخصات | جامعة العلوم التطبيقية',
+    template: '%s | UniBookClub',
+  },
   description:
-    'منصة لطلاب جامعة العلوم التطبيقية: بيع وشراء الكتب الجامعية والملخصات بسهولة — تصفح حسب الكلية والمادة.',
+    'سوق طلابي لبيع وشراء الكتب الجامعية والملخصات داخل جامعة العلوم التطبيقية — تصفّح، احجز، وتواصل بأمان.',
+  keywords: [
+    'كتب جامعية',
+    'ملخصات',
+    'جامعة العلوم التطبيقية',
+    'UniBookClub',
+    'سوق طلابي',
+  ],
+  openGraph: {
+    type: 'website',
+    locale: 'ar_JO',
+    siteName: 'UniBookClub',
+    title: 'UniBookClub — سوق الكتب والملخصات',
+    description:
+      'بيع وشراء الكتب والملخصات الجامعية — تجربة حديثة وسريعة لطلاب جامعة العلوم التطبيقية.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'UniBookClub',
+    description: 'سوق الكتب والملخصات لطلاب جامعة العلوم التطبيقية',
+  },
 }
 
 export default function RootLayout({
@@ -41,6 +65,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
+          <NavigationProgress />
           <LanguageProvider>{children}</LanguageProvider>
         </ThemeProvider>
         <DeferredVitals />

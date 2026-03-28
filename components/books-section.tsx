@@ -9,6 +9,8 @@ import { BookOpen, ChevronLeft } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
 
 import { discountPercentLabel, isPromoDiscountActive } from "@/lib/utils/listing-discount"
+import { formatJod } from "@/lib/utils"
+import { staggerStyle } from "@/lib/motion"
 
 type Listing = {
   id: string
@@ -69,7 +71,7 @@ export function BooksSection({ listings }: Props) {
         {displayListings.length > 0 ? (
           <>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {displayListings.map((listing) => {
+              {displayListings.map((listing, index) => {
                 const availability = listing.availability || "available"
                 const showPromo = isPromoDiscountActive(listing)
                 const promoPct = discountPercentLabel(listing)
@@ -77,16 +79,18 @@ export function BooksSection({ listings }: Props) {
                   <Link
                     key={listing.id}
                     href={`/book/${listing.id}`}
-                    className="touch-manipulation block"
+                    className="group block touch-manipulation ubc-reveal-item ubc-content-auto"
+                    style={staggerStyle(index)}
                   >
-                    <Card className="h-full overflow-hidden transition-shadow duration-200 hover:shadow-md active:scale-[0.99]">
-                      <div className="relative aspect-[4/3] bg-muted">
+                    <Card className="ubc-market-card h-full overflow-hidden border-border/60 shadow-sm hover:shadow-lg motion-safe:active:scale-[0.99]">
+                      <div className="ubc-market-card-media relative aspect-[4/3] bg-muted">
                         {listing.images?.[0] ? (
                           <Image
                             src={`/api/file?pathname=${encodeURIComponent(listing.images[0])}`}
                             alt={listing.title}
                             fill
                             className="object-cover"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center">
@@ -120,10 +124,10 @@ export function BooksSection({ listings }: Props) {
                             listing.original_price != null &&
                             Number(listing.original_price) > Number(listing.price) && (
                               <span className="text-sm text-muted-foreground line-through">
-                                {listing.original_price} د.أ
+                                {formatJod(listing.original_price)} د.أ
                               </span>
                             )}
-                          <p className="text-lg font-bold text-primary">{listing.price} د.أ</p>
+                          <p className="text-lg font-bold text-primary">{formatJod(listing.price)} د.أ</p>
                         </div>
                       </CardContent>
                     </Card>

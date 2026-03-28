@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Heart, BookOpen, Eye } from "lucide-react"
 import { discountPercentLabel, isPromoDiscountActive } from "@/lib/utils/listing-discount"
+import { formatJod } from "@/lib/utils"
 
 type Listing = {
   id: string
@@ -141,10 +142,10 @@ export function FavoritesContent({ listings: initialListings }: Props) {
                         listing.original_price != null &&
                         Number(listing.original_price) > Number(listing.price) && (
                           <span className="text-sm text-muted-foreground line-through">
-                            {listing.original_price} د.أ
+                            {formatJod(listing.original_price)} د.أ
                           </span>
                         )}
-                      <span className="text-lg font-bold text-primary">{listing.price} د.أ</span>
+                      <span className="text-lg font-bold text-primary">{formatJod(listing.price)} د.أ</span>
                     </span>
                     <span className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Eye className="h-3 w-3" />

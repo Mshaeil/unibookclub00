@@ -28,6 +28,7 @@ import {
   LISTING_DISCOUNT_RECOMMENDED_PCTS,
   priceAfterPercentDiscount,
 } from "@/lib/utils/listing-discount"
+import { formatJod } from "@/lib/utils"
 import { ensureMyProfileRpc } from "@/lib/auth/ensure-my-profile-rpc"
 
 type Faculty = { id: string; name: string }
@@ -440,9 +441,11 @@ export function NewListingForm({ faculties, majors, courses }: Props) {
               <p className="text-sm text-muted-foreground">
                 السعر بعد الخصم:{" "}
                 <span className="font-semibold text-primary">
-                  {priceAfterPercentDiscount(
-                    Number(listBasePrice.replace(",", ".")),
-                    discountPct,
+                  {formatJod(
+                    priceAfterPercentDiscount(
+                      Number(listBasePrice.replace(",", ".")),
+                      discountPct,
+                    ),
                   )}{" "}
                   د.أ
                 </span>

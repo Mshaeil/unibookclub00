@@ -94,6 +94,7 @@ export function Header() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       try {
+        if (!mounted) return
         setUser(session?.user ?? null)
         if (!session?.user) {
           setProfile(null)
@@ -104,13 +105,14 @@ export function Header() {
           .from("profiles")
           .select("full_name, role")
           .eq("id", session.user.id)
-          .single()
-        setProfile(data)
+          .maybeSingle()
+        if (mounted) setProfile(data ?? null)
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
         if (!/lock:sb-.*-auth-token/i.test(msg)) {
           console.error("[Header] auth state error:", e)
         }
+        if (mounted) setProfile(null)
       }
     })
 
@@ -177,16 +179,28 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/"
+              className="ubc-nav-underline text-sm font-medium text-foreground transition-colors hover:text-primary"
+            >
               {t("الرئيسية", "Home")}
             </Link>
-            <Link href="/browse" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/browse"
+              className="ubc-nav-underline text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
               {t("تصفح الكتب والملخصات", "Browse books & summaries")}
             </Link>
-            <Link href="/#faculties" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/#faculties"
+              className="ubc-nav-underline text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
               {t("الكليات", "Faculties")}
             </Link>
-            <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href="/how-it-works"
+              className="ubc-nav-underline text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
               {t("كيف يعمل", "How it works")}
             </Link>
           </nav>
