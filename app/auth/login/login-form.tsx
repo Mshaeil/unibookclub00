@@ -14,6 +14,7 @@ import { BookOpen, Loader2, Mail, AlertCircle } from "lucide-react"
 import { useTranslate } from "@/components/language-provider"
 import { PasswordField } from "@/components/auth/password-field"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
+import { TurnstileWidget } from "@/components/auth/turnstile-widget"
 
 export default function LoginForm() {
   const t = useTranslate()
@@ -23,8 +24,11 @@ export default function LoginForm() {
   
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [captchaToken, setCaptchaToken] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""
 
   useEffect(() => {
     const oauthErr = searchParams.get("error")
@@ -46,6 +50,12 @@ export default function LoginForm() {
     if (lower.includes("invalid login credentials")) {
       return t("البريد الإلكتروني أو كلمة المرور غير صحيحة", "Invalid email or password")
     }
+    if (lower.includes("captcha") || lower.includes("captcha_token") || lower.includes("turnstile")) {
+      return t(
+        "التحقق الأمني عبر CAPTCHA/Turnstile مطلوب. إذا لم يظهر لك التحقق، تأكد من ضبط `NEXT_PUBLIC_TURNSTILE_SITE_KEY` في `.env.local` وإعادة تشغيل السيرفر، أو عطّل CAPTCHA من Supabase.",
+        "CAPTCHA/Turnstile verification is required. If the check doesn't show up, set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` in `.env.local` and restart, or disable CAPTCHA in Supabase.",
+      )
+    }
     return message || t("حدث خطأ أثناء تسجيل الدخول", "Login failed")
   }
 
@@ -54,11 +64,18 @@ export default function LoginForm() {
     setError(null)
     setLoading(true)
 
+    if (turnstileSiteKey && !captchaToken) {
+      setError(t("يرجى إكمال التحقق الأمني أولاً", "Please complete the security check first"))
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
-    const { data: signData, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const credentials = turnstileSiteKey
+      ? { email, password, options: { captchaToken } }
+      : { email, password }
+
+    const { data: signData, error } = await supabase.auth.signInWithPassword(credentials)
 
     if (error) {
       setError(mapAuthError(error.message))
@@ -161,6 +178,21 @@ export default function LoginForm() {
                   autoComplete="current-password"
                 />
               </div>
+
+              {turnstileSiteKey ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label>{t("التحقق الأمني", "Security check")}</Label>
+                  </div>
+                  <div className="rounded-md border bg-background p-3">
+                    <TurnstileWidget
+                      siteKey={turnstileSiteKey}
+                      onToken={(tkn) => setCaptchaToken(tkn)}
+                      onError={() => setCaptchaToken("")}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
               <Button
