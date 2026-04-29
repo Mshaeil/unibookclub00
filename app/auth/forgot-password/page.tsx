@@ -10,13 +10,17 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { BookOpen, Loader2, Mail, AlertCircle, ArrowRight, CheckCircle } from "lucide-react"
 import { useTranslate } from "@/components/language-provider"
+import { TurnstileWidget } from "@/components/auth/turnstile-widget"
 
 export default function ForgotPasswordPage() {
   const t = useTranslate()
   const [email, setEmail] = useState("")
+  const [captchaToken, setCaptchaToken] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -24,12 +28,29 @@ export default function ForgotPasswordPage() {
     setLoading(true)
 
     const supabase = createClient()
+    if (turnstileSiteKey && !captchaToken) {
+      setError(t("يرجى إكمال التحقق الأمني أولاً", "Please complete the security check first"))
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
+      ...(turnstileSiteKey ? { captchaToken } : {}),
     })
 
     if (error) {
-      setError(error.message)
+      const msg = error.message.toLowerCase()
+      if (msg.includes("captcha") || msg.includes("captcha_token") || msg.includes("turnstile")) {
+        setError(
+          t(
+            "CAPTCHA/Turnstile مطلوب لإرسال رابط الاسترداد. تأكد من ضبط `NEXT_PUBLIC_TURNSTILE_SITE_KEY` في `.env.local` وتشغيل السيرفر من جديد، أو عطّل CAPTCHA من Supabase.",
+            "CAPTCHA/Turnstile is required to send the reset link. Make sure `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is set in `.env.local` and restart the server, or disable CAPTCHA in Supabase.",
+          ),
+        )
+      } else {
+        setError(error.message)
+      }
       setLoading(false)
       return
     }
@@ -117,6 +138,19 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
               </div>
+
+              {turnstileSiteKey ? (
+                <div className="space-y-2">
+                  <Label>{t("التحقق الأمني", "Security check")}</Label>
+                  <div className="rounded-md border bg-background p-3">
+                    <TurnstileWidget
+                      siteKey={turnstileSiteKey}
+                      onToken={(tkn) => setCaptchaToken(tkn)}
+                      onError={() => setCaptchaToken("")}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
               <Button type="submit" className="w-full" disabled={loading}>
