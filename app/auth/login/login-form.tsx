@@ -140,9 +140,14 @@ export default function LoginForm() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium">{t("كلمة المرور", "Password")}</span>
-                  <Link href="/forgot-password" className="text-sm text-primary hover:underline shrink-0">
-                    {t("نسيت كلمة المرور؟", "Forgot password?")}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground hidden sm:inline">
+                      {t("نسيت كلمة المرور؟", "Forgot password?")}
+                    </span>
+                    <Button asChild variant="link" size="sm" className="h-auto p-0 shrink-0">
+                      <Link href="/forgot-password">{t("إعادة تعيين كلمة المرور", "Reset password")}</Link>
+                    </Button>
+                  </div>
                 </div>
                 <PasswordField
                   id="login-password"

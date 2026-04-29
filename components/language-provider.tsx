@@ -24,14 +24,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const initial = readStoredLanguage()
     setLanguageState(initial)
     document.documentElement.lang = initial
-    document.documentElement.dir = "rtl"
+    document.documentElement.dir = initial === "ar" ? "rtl" : "ltr"
   }, [])
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem("site_lang", lang)
     document.documentElement.lang = lang
-    document.documentElement.dir = "rtl"
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"
   }
 
   const value = useMemo(() => ({ language, setLanguage }), [language])

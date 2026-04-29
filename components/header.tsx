@@ -100,13 +100,27 @@ export function Header() {
           setProfile(null)
           return
         }
-        await ensureUserProfile(supabase, session.user)
+        // Avoid blocking on ensureUserProfile; fetch first, then sync if missing.
         const { data } = await supabase
           .from("profiles")
           .select("full_name, role")
           .eq("id", session.user.id)
           .maybeSingle()
         if (mounted) setProfile(data ?? null)
+
+        if (!data) {
+          try {
+            await ensureUserProfile(supabase, session.user)
+            const { data: dataAfterSync } = await supabase
+              .from("profiles")
+              .select("full_name, role")
+              .eq("id", session.user.id)
+              .maybeSingle()
+            if (mounted) setProfile(dataAfterSync ?? null)
+          } catch {
+            // If sync fails, the UI will continue showing null profile until the next auth refresh.
+          }
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
         if (!/lock:sb-.*-auth-token/i.test(msg)) {
