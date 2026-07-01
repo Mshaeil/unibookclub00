@@ -343,3 +343,5 @@ REVOKE ALL ON FUNCTION public.order_set_status(uuid, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.order_set_status(uuid, text, text) TO authenticated;
 REVOKE ALL ON FUNCTION public.redeem_points_for_order(uuid, int) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.redeem_points_for_order(uuid, int) TO authenticated;
+
+SELECT '02_functions.sql completed OK' AS status;

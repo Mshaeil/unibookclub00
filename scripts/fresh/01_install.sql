@@ -239,6 +239,9 @@ AS $$
   );
 $$;
 
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
+
 CREATE OR REPLACE FUNCTION public.phone_last10_match(a TEXT, b TEXT)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -286,8 +289,16 @@ BEGIN
     NULLIF(TRIM(NEW.raw_user_meta_data ->> 'whatsapp'), ''),
     NEW.email,
     'user',
-    NULLIF(TRIM(NEW.raw_user_meta_data ->> 'faculty_id'), '')::uuid,
-    NULLIF(TRIM(NEW.raw_user_meta_data ->> 'major_id'), '')::uuid
+    CASE
+      WHEN COALESCE(TRIM(NEW.raw_user_meta_data ->> 'faculty_id'), '') ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+      THEN (TRIM(NEW.raw_user_meta_data ->> 'faculty_id'))::uuid
+      ELSE NULL
+    END,
+    CASE
+      WHEN COALESCE(TRIM(NEW.raw_user_meta_data ->> 'major_id'), '') ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+      THEN (TRIM(NEW.raw_user_meta_data ->> 'major_id'))::uuid
+      ELSE NULL
+    END
   )
   ON CONFLICT (id) DO UPDATE SET
     email = COALESCE(EXCLUDED.email, public.profiles.email),
@@ -363,21 +374,42 @@ ALTER TABLE public.super_admins ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "faculties_read_all" ON public.faculties;
 CREATE POLICY "faculties_read_all" ON public.faculties FOR SELECT USING (true);
+DROP POLICY IF EXISTS "faculties_admin_insert" ON public.faculties;
+DROP POLICY IF EXISTS "faculties_admin_update" ON public.faculties;
+DROP POLICY IF EXISTS "faculties_admin_delete" ON public.faculties;
 DROP POLICY IF EXISTS "faculties_admin_write" ON public.faculties;
-CREATE POLICY "faculties_admin_write" ON public.faculties FOR ALL
+CREATE POLICY "faculties_admin_insert" ON public.faculties FOR INSERT
+  WITH CHECK (public.is_admin());
+CREATE POLICY "faculties_admin_update" ON public.faculties FOR UPDATE
   USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE POLICY "faculties_admin_delete" ON public.faculties FOR DELETE
+  USING (public.is_admin());
 
 DROP POLICY IF EXISTS "majors_read_all" ON public.majors;
 CREATE POLICY "majors_read_all" ON public.majors FOR SELECT USING (true);
+DROP POLICY IF EXISTS "majors_admin_insert" ON public.majors;
+DROP POLICY IF EXISTS "majors_admin_update" ON public.majors;
+DROP POLICY IF EXISTS "majors_admin_delete" ON public.majors;
 DROP POLICY IF EXISTS "majors_admin_write" ON public.majors;
-CREATE POLICY "majors_admin_write" ON public.majors FOR ALL
+CREATE POLICY "majors_admin_insert" ON public.majors FOR INSERT
+  WITH CHECK (public.is_admin());
+CREATE POLICY "majors_admin_update" ON public.majors FOR UPDATE
   USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE POLICY "majors_admin_delete" ON public.majors FOR DELETE
+  USING (public.is_admin());
 
 DROP POLICY IF EXISTS "courses_read_all" ON public.courses;
 CREATE POLICY "courses_read_all" ON public.courses FOR SELECT USING (true);
+DROP POLICY IF EXISTS "courses_admin_insert" ON public.courses;
+DROP POLICY IF EXISTS "courses_admin_update" ON public.courses;
+DROP POLICY IF EXISTS "courses_admin_delete" ON public.courses;
 DROP POLICY IF EXISTS "courses_admin_write" ON public.courses;
-CREATE POLICY "courses_admin_write" ON public.courses FOR ALL
+CREATE POLICY "courses_admin_insert" ON public.courses FOR INSERT
+  WITH CHECK (public.is_admin());
+CREATE POLICY "courses_admin_update" ON public.courses FOR UPDATE
   USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE POLICY "courses_admin_delete" ON public.courses FOR DELETE
+  USING (public.is_admin());
 
 DROP POLICY IF EXISTS "profiles_read_all" ON public.profiles;
 CREATE POLICY "profiles_read_all" ON public.profiles FOR SELECT USING (true);
@@ -498,4 +530,4 @@ DROP POLICY IF EXISTS "super_admins_read_admin" ON public.super_admins;
 CREATE POLICY "super_admins_read_admin" ON public.super_admins FOR SELECT TO authenticated
   USING (public.is_admin());
 
--- continue in 02_functions.sql
+SELECT '01_install.sql completed OK' AS status;

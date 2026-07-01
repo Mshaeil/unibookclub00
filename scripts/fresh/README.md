@@ -16,7 +16,20 @@
 
 ## الخطوات (بالترتيب)
 
-### 1) أنشئ مشروع Supabase جديد
+### ⚠️ إذا ظهر FAILED — اقرأ هذا أولاً
+
+| السبب الشائع | الحل |
+|--------------|------|
+| شغّلت على قاعدة **قديمة** فيها جداول مختلفة | شغّل `00_reset.sql` ثم أعد من `01` |
+| فشل في المنتصف وأعدت التشغيل | شغّل `00_reset.sql` ثم أعد الكل |
+| فشل `04_storage` | أنشئ bucket يدوياً: **Storage → New bucket → `listing-images` (Private)** ثم أعد `04` |
+| رسالة `column "name_ar" does not exist` | القاعدة قديمة — شغّل `00_reset.sql` |
+
+**مهم:** انسخ **ملفاً واحداً كاملاً** في SQL Editor ثم اضغط **Run**. لا تنسخ أكثر من ملف دفعة واحدة.
+
+---
+
+### 1) أنشئ مشروع Supabase جديد (أو امسح القديم)
 
 1. ادخل [supabase.com/dashboard](https://supabase.com/dashboard)
 2. **New project**
@@ -33,15 +46,16 @@
 
 من لوحة Supabase: **SQL Editor → New query**
 
-شغّل **بالترتيب** (كل ملف لصق ثم Run):
+شغّل **بالترتيب** (كل ملف لصق → Run → انتظر Success):
 
-| # | الملف | الوصف |
-|---|--------|--------|
-| 1 | `scripts/fresh/01_install.sql` | الجداول + الفهارس + RLS |
-| 2 | `scripts/fresh/02_functions.sql` | دوال الحجز والنقاط والأدمن |
-| 3 | `scripts/fresh/03_seed.sql` | الكليات والتخصصات والمواد |
-| 4 | `scripts/fresh/04_storage.sql` | bucket الصور والملفات |
-| 5 | `scripts/fresh/05_admin_setup.sql` | بعد تعديل البريدين داخله |
+| # | الملف | النتيجة المتوقعة |
+|---|--------|------------------|
+| 0 | `00_reset.sql` | `public schema reset OK` ← **شغّله إذا فشل أي خطوة** |
+| 1 | `01_install.sql` | `01_install.sql completed OK` |
+| 2 | `02_functions.sql` | `02_functions.sql completed OK` |
+| 3 | `03_seed.sql` | `03_seed.sql completed OK` |
+| 4 | `04_storage.sql` | `04_storage.sql completed OK` |
+| 5 | `05_admin_setup.sql` | بعد تعديل البريدين داخله |
 
 ---
 
