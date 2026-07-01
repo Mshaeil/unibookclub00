@@ -63,7 +63,7 @@ export default function RegisterPage() {
     async function fetchFaculties() {
       const { data } = await supabase
         .from("faculties")
-        .select("id, name")
+        .select("id, name_ar, name_en")
         .order("id")
       if (data) setFaculties(data)
     }
@@ -78,7 +78,7 @@ export default function RegisterPage() {
       }
       const { data } = await supabase
         .from("majors")
-        .select("id, faculty_id, name")
+        .select("id, faculty_id, name_ar, name_en")
         .eq("faculty_id", formData.facultyId)
         .order("id")
       if (data) setMajors(data)

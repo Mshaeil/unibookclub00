@@ -38,41 +38,26 @@ export default async function AccountPage() {
       .order("created_at", { ascending: false }),
   ])
 
-  const facultiesArResult = await supabase.from("faculties").select("id, name_ar").order("id")
-  const facultiesNameResult =
-    facultiesArResult.error
-      ? await supabase.from("faculties").select("id, name").order("id")
-      : { data: null }
+  const [facultiesResult, majorsResult] = await Promise.all([
+    supabase.from("faculties").select("id, name_ar, name_en").order("id"),
+    supabase.from("majors").select("id, faculty_id, name_ar, name_en").order("id"),
+  ])
 
-  const majorsArResult = await supabase
-    .from("majors")
-    .select("id, faculty_id, name_ar")
-    .order("id")
-  const majorsNameResult =
-    majorsArResult.error
-      ? await supabase.from("majors").select("id, faculty_id, name").order("id")
-      : { data: null }
-
-  const faculties = (facultiesArResult.data ??
-    facultiesNameResult.data?.map((f: { id: string; name: string }) => ({
-      id: f.id,
-      name_ar: f.name,
-    })) ??
-    []) as { id: string; name_ar: string }[]
-
-  const majors = (majorsArResult.data ??
-    majorsNameResult.data?.map((m: { id: string; faculty_id: string; name: string }) => ({
-      id: m.id,
-      faculty_id: m.faculty_id,
-      name_ar: m.name,
-    })) ??
-    []) as { id: string; faculty_id: string; name_ar: string }[]
+  const faculties = (facultiesResult.data ?? []).map((f) => ({
+    id: f.id,
+    name_ar: f.name_ar ?? f.name_en ?? "-",
+  }))
+  const majors = (majorsResult.data ?? []).map((m) => ({
+    id: m.id,
+    faculty_id: m.faculty_id,
+    name_ar: m.name_ar ?? m.name_en ?? "-",
+  }))
 
   const hasDbError =
     Boolean(profileError) ||
     Boolean(listingsError) ||
-    (Boolean(facultiesArResult.error) && !facultiesNameResult.data) ||
-    (Boolean(majorsArResult.error) && !majorsNameResult.data)
+    Boolean(facultiesResult.error) ||
+    Boolean(majorsResult.error)
 
   if (hasDbError) {
     return (

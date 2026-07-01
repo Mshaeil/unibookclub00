@@ -24,36 +24,25 @@
 | `CONTACT_TO_EMAIL` | بريد استقبال رسائل التواصل |
 | `CONTACT_FROM_EMAIL` | بريد المرسل (نطاق موثّق في Resend) |
 
-## 2. قاعدة البيانات (Supabase SQL)
+## 2. قاعدة البيانات (مشروع جديد — موصى به)
 
-نفّذ السكربتات بالترتيب في **SQL Editor**:
+**للقاعدة النظيفة السريعة** اتبع الدليل الكامل:
+
+👉 [`scripts/fresh/README.md`](scripts/fresh/README.md)
+
+ملخص سريع — نفّذ بالترتيب في SQL Editor:
 
 ```
-001_create_schema.sql
-002_seed_base.sql
-003_seed_sample_listings.sql   ← تخطّه في الإنتاج
-004_promote_admin.sql
-005_fix_listings_courses_fk.sql
-006_add_profiles_is_active.sql
-007_add_sales_and_seller_reviews.sql
-008_sales_seller_records_and_listings_buyer_read.sql
-009_listing_discount_profile_email_rls_fixes.sql
-010_discount_expires_at.sql
-011_listings_admin_delete_rls.sql
-012_messaging_admin_promote.sql
-015_registered_users_stats_and_admin_list.sql
-016_account_status_super_admin.sql
-018_profiles_update_with_check.sql
-019_super_admins_config.sql
-020_orders_cart_points.sql
-021_points_redemption.sql
-022_profile_upsert_rpc.sql
-023_ensure_my_profile_rpc.sql
-024_indexes_from_user_request.sql
-025_performance_boost.sql
+scripts/fresh/01_install.sql
+scripts/fresh/02_functions.sql
+scripts/fresh/03_seed.sql
+scripts/fresh/04_storage.sql
+scripts/fresh/05_admin_setup.sql   ← بعد تعديل البريد
 ```
 
-بعد التنفيذ، رقِّ أول مدير يدوياً عبر `004_promote_admin.sql` أو لوحة الإدارة.
+### ترقية قاعدة قديمة (اختياري — غير موصى به)
+
+إذا أردت البقاء على المشروع القديم، نفّذ السكربتات `001`–`025` بالترتيب (بطيء ومعرّض للتعارض). للإنتاج استخدم `scripts/fresh/` على مشروع جديد.
 
 ## 3. Supabase Auth
 

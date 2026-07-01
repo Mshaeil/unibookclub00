@@ -1,5 +1,6 @@
--- UniBookClub Base Seed (fixed: uses name_ar / name_en)
--- Safe to run multiple times.
+-- =============================================================================
+-- UniBookClub — بيانات الكليات والتخصصات (شغّل بعد 02_functions.sql)
+-- =============================================================================
 
 INSERT INTO public.faculties (id, name_ar, name_en) VALUES
   ('11111111-1111-1111-1111-111111111101', 'الهندسة والتكنولوجيا', 'Engineering & Technology'),
