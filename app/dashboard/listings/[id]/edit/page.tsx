@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { EditListingForm } from "@/components/dashboard/edit-listing-form"
+import { mapCatalogForForm } from "@/lib/utils/catalog-label"
 
 export default async function EditListingPage({ 
   params 
@@ -28,11 +29,15 @@ export default async function EditListingPage({
   }
 
   // Fetch faculties, majors, courses
-  const [{ data: faculties }, { data: majors }, { data: courses }] = await Promise.all([
-    supabase.from("faculties").select("id, name").order("id"),
-    supabase.from("majors").select("id, faculty_id, name").order("id"),
-    supabase.from("courses").select("id, major_id, name").order("id"),
+  const [{ data: facultiesRaw }, { data: majorsRaw }, { data: coursesRaw }] = await Promise.all([
+    supabase.from("faculties").select("id, name_ar, name_en").order("id"),
+    supabase.from("majors").select("id, faculty_id, name_ar, name_en").order("id"),
+    supabase.from("courses").select("id, major_id, name_ar, name_en").order("id"),
   ])
+
+  const faculties = mapCatalogForForm(facultiesRaw)
+  const majors = mapCatalogForForm(majorsRaw)
+  const courses = mapCatalogForForm(coursesRaw)
 
   // Get faculty and major IDs from course if exists
   let facultyId = ""

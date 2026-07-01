@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { NewListingForm } from "@/components/dashboard/new-listing-form"
+import { mapCatalogForForm } from "@/lib/utils/catalog-label"
 
 export default async function NewListingPage() {
   const supabase = await createClient()
@@ -10,23 +11,11 @@ export default async function NewListingPage() {
     redirect("/login?redirect=/dashboard/listings/new")
   }
 
-  // Fetch faculties
-  const { data: faculties } = await supabase
-    .from("faculties")
-    .select("id, name")
-    .order("id")
-
-  // Fetch majors
-  const { data: majors } = await supabase
-    .from("majors")
-    .select("id, faculty_id, name")
-    .order("id")
-
-  // Fetch courses
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("id, major_id, name")
-    .order("id")
+  const [{ data: facultiesRaw }, { data: majorsRaw }, { data: coursesRaw }] = await Promise.all([
+    supabase.from("faculties").select("id, name_ar, name_en").order("id"),
+    supabase.from("majors").select("id, faculty_id, name_ar, name_en").order("id"),
+    supabase.from("courses").select("id, major_id, name_ar, name_en").order("id"),
+  ])
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -35,11 +24,11 @@ export default async function NewListingPage() {
         <p className="text-muted-foreground mb-8">
           املأ التفاصيل لعرض كتابك أو ملخصك أو ملزمتك — المنصة موجّهة للمحتوى الدراسي (كتب وملخصات).
         </p>
-        
-        <NewListingForm 
-          faculties={faculties || []}
-          majors={majors || []}
-          courses={courses || []}
+
+        <NewListingForm
+          faculties={mapCatalogForForm(facultiesRaw)}
+          majors={mapCatalogForForm(majorsRaw)}
+          courses={mapCatalogForForm(coursesRaw)}
         />
       </div>
     </div>

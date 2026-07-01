@@ -1,5 +1,6 @@
--- UniBookClub Base Seed (fixed: uses name_ar / name_en)
--- Safe to run multiple times.
+-- =============================================================================
+-- UniBookClub — بيانات الكليات والتخصصات (شغّل بعد 02_functions.sql)
+-- =============================================================================
 
 INSERT INTO public.faculties (id, name_ar, name_en) VALUES
   ('11111111-1111-1111-1111-111111111101', 'الهندسة والتكنولوجيا', 'Engineering & Technology'),
@@ -44,3 +45,5 @@ INSERT INTO public.courses (id, major_id, code, name_ar, name_en) VALUES
   ('33333333-3333-3333-3333-33333333330f', '22222222-2222-2222-2222-22222222220a', 'PSY101', 'مقدمة في علم النفس', 'Intro to Psychology'),
   ('33333333-3333-3333-3333-333333333310', '22222222-2222-2222-2222-22222222220b', 'LAW101', 'القانون المدني', 'Civil Law')
 ON CONFLICT (id) DO UPDATE SET major_id = EXCLUDED.major_id, code = EXCLUDED.code, name_ar = EXCLUDED.name_ar, name_en = EXCLUDED.name_en;
+
+SELECT '03_seed.sql completed OK' AS status;
