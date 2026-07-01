@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -23,6 +23,55 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [sessionReady, setSessionReady] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    async function checkSession() {
+      const supabase = createClient()
+      const { data } = await supabase.auth.getUser()
+      setSessionReady(Boolean(data.user))
+    }
+    void checkSession()
+  }, [])
+
+  if (sessionReady === false && !success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+              <AlertCircle className="h-8 w-8 text-amber-600" />
+            </div>
+            <CardTitle className="text-2xl">
+              {t("رابط غير صالح أو منتهٍ", "Invalid or expired link")}
+            </CardTitle>
+            <CardDescription className="text-base">
+              {t(
+                "افتح رابط إعادة التعيين من بريدك الإلكتروني، أو اطلب رابطاً جديداً.",
+                "Open the reset link from your email, or request a new one.",
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="flex flex-col gap-3">
+            <Button asChild className="w-full">
+              <Link href="/forgot-password">{t("طلب رابط جديد", "Request new link")}</Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/login">{t("تسجيل الدخول", "Sign in")}</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
+
+  if (sessionReady === null && !success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

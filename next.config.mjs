@@ -32,6 +32,23 @@ const nextConfig = {
         destination: '/dashboard',
         permanent: false,
       },
+      { source: '/auth/login', destination: '/login', permanent: true },
+      { source: '/auth/register', destination: '/register', permanent: true },
+      { source: '/auth/forgot-password', destination: '/forgot-password', permanent: true },
+      { source: '/auth/reset-password', destination: '/reset-password', permanent: true },
+    ]
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
     ]
   },
   poweredByHeader: false,

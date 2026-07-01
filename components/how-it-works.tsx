@@ -30,7 +30,7 @@ export function HowItWorks() {
 
         <div className="grid gap-8 lg:grid-cols-2">
           {/* For Sellers */}
-          <div className="bg-card rounded-2xl border border-border/50 p-6 md:p-8">
+          <div className="bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/45 rounded-2xl border border-border/50 p-6 md:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <BookPlus className="h-5 w-5 text-primary" />
@@ -108,7 +108,7 @@ export function HowItWorks() {
           </div>
 
           {/* For Buyers */}
-          <div className="bg-card rounded-2xl border border-border/50 p-6 md:p-8">
+          <div className="bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/45 rounded-2xl border border-border/50 p-6 md:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-secondary/20 flex items-center justify-center">
                 <ShoppingBag className="h-5 w-5 text-secondary" />

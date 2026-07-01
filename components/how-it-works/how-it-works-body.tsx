@@ -90,7 +90,7 @@ export function HowItWorksBody() {
           ].map((step, i) => (
             <div
               key={i}
-              className="relative bg-card border border-border/50 rounded-2xl p-6 group hover:border-primary/30 transition-colors"
+              className="relative bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/45 border border-border/50 rounded-2xl p-6 group hover:border-primary/30 transition-colors"
             >
               <div className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
                 {i + 1}
@@ -152,7 +152,7 @@ export function HowItWorksBody() {
           ].map((step, i) => (
             <div
               key={i}
-              className="relative bg-card border border-border/50 rounded-2xl p-6 group hover:border-secondary/30 transition-colors"
+              className="relative bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/45 border border-border/50 rounded-2xl p-6 group hover:border-secondary/30 transition-colors"
             >
               <div className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-lg font-bold">
                 {i + 1}

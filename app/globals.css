@@ -132,6 +132,13 @@
     );
     background-attachment: fixed;
   }
+
+  /* `background-attachment: fixed` مكلف على الموبايل؛ اجعله scroll لتقليل استهلاك الموارد */
+  @media (max-width: 768px) {
+    body {
+      background-attachment: scroll;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;

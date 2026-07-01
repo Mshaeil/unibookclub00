@@ -6,6 +6,11 @@ import { getOAuthCallbackUrl } from "@/lib/auth/oauth-redirect"
 import { createClient } from "@/lib/supabase/client"
 import { isValidTenDigitPhone, sanitizePhoneDigits } from "@/lib/utils/phone"
 import { isPasswordStrongEnough, PASSWORD_MIN_LENGTH } from "@/lib/utils/generate-password"
+import {
+  isUniversityEmail,
+  universityEmailErrorMessage,
+  universityEmailHint,
+} from "@/lib/utils/university-email"
 import { PasswordField } from "@/components/auth/password-field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -156,6 +161,18 @@ export default function RegisterPage() {
       return
     }
 
+    if (!isUniversityEmail(formData.email)) {
+      setError(universityEmailErrorMessage(language))
+      setLoading(false)
+      return
+    }
+
+    if (!formData.facultyId || !formData.majorId) {
+      setError(t("يرجى اختيار الكلية والتخصص", "Please select faculty and major"))
+      setLoading(false)
+      return
+    }
+
     if (turnstileSiteKey && !captchaToken) {
       setError(t("يرجى إكمال التحقق الأمني أولاً", "Please complete the CAPTCHA first"))
       setLoading(false)
@@ -275,7 +292,7 @@ export default function RegisterPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="example@university.edu.jo"
+                    placeholder={universityEmailHint()}
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="pr-10"
@@ -315,6 +332,7 @@ export default function RegisterPage() {
                     value={formData.facultyId} 
                     onValueChange={(v) => setFormData({ ...formData, facultyId: v, majorId: "" })}
                     disabled={loading}
+                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={t("اختر الكلية", "Select faculty")} />
@@ -333,6 +351,7 @@ export default function RegisterPage() {
                     value={formData.majorId} 
                     onValueChange={(v) => setFormData({ ...formData, majorId: v })}
                     disabled={loading || !formData.facultyId}
+                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={t("اختر التخصص", "Select major")} />
