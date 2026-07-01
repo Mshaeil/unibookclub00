@@ -28,6 +28,7 @@ type SaleRow = {
 type Props = {
   sales: SaleRow[]
   reviewedListingIds: string[]
+  embedded?: boolean
 }
 
 function one<T>(v: T | T[] | null | undefined): T | null {
@@ -35,7 +36,7 @@ function one<T>(v: T | T[] | null | undefined): T | null {
   return Array.isArray(v) ? v[0] ?? null : v
 }
 
-export function PurchasesContent({ sales, reviewedListingIds }: Props) {
+export function PurchasesContent({ sales, reviewedListingIds, embedded = false }: Props) {
   const t = useTranslate()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
@@ -70,9 +71,11 @@ export function PurchasesContent({ sales, reviewedListingIds }: Props) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className={embedded ? "container mx-auto px-4 py-8" : "container mx-auto px-4 py-8"}>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">{t("مشترياتك", "Your purchases")}</h1>
+        <h1 className="text-2xl font-bold">
+          {embedded ? t("سجل مشترياتك", "Purchase history") : t("مشترياتك", "Your purchases")}
+        </h1>
         <p className="text-muted-foreground mt-1">
           {t(
             "يظهر هنا ما سجّله البائع عندما يطابق بريدك أو رقم التواصل بيانات ملفك. بعد التقييم يمكنك تحميل ملف PDF إن وُجد.",

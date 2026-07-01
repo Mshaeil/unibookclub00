@@ -15,7 +15,6 @@ import { useTranslate } from "@/components/language-provider"
 import { PasswordField } from "@/components/auth/password-field"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
 import { TurnstileWidget } from "@/components/auth/turnstile-widget"
-import { universityEmailHint } from "@/lib/utils/university-email"
 
 export default function LoginForm() {
   const t = useTranslate()
@@ -145,7 +144,7 @@ export default function LoginForm() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder={universityEmailHint()}
+                    placeholder="you@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pr-10"

@@ -56,6 +56,13 @@
 | 3 | `03_seed.sql` | `03_seed.sql completed OK` |
 | 4 | `04_storage.sql` | `04_storage.sql completed OK` |
 | 5 | `05_admin_setup.sql` | بعد تعديل البريدين داخله |
+| 6 | `06_seller_verification.sql` | تحقق البائع (بريد جامعي + هوية) |
+| 7 | `07_asu_expansion.sql` | تخصصات إضافية (أمن سيبراني، AI...) |
+| 8 | `08_enable_realtime.sql` | تحديث فوري للإعلانات والإشعارات |
+
+**تفعيل Google OAuth:** Authentication → Providers → Google (أضف Client ID/Secret من Google Cloud).
+
+**Realtime يدوياً إن فشل 08:** Database → Replication → فعّل جدول `listings`.
 
 ---
 

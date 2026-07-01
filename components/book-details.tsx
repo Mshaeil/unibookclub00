@@ -357,7 +357,8 @@ export function BookDetails({ listing, relatedListings, viewer, sellerRating }: 
     listing.seller?.phone ||
     ""
   ).replace(/\D/g, "")
-  const canWhatsApp = waDigits.length >= 10
+  const canWhatsApp = waDigits.length >= 10 && Boolean(viewer?.userId)
+  const isLoggedIn = Boolean(viewer?.userId)
 
   async function handleShare() {
     const shareUrl = typeof window !== "undefined" ? window.location.href : ""
@@ -628,7 +629,11 @@ export function BookDetails({ listing, relatedListings, viewer, sellerRating }: 
                 <span className="text-xs text-muted-foreground">
                   {t("رقم واتساب", "WhatsApp")}
                 </span>
-                <p className="font-medium text-foreground">{listing.whatsapp || listing.seller?.whatsapp || "-"}</p>
+                <p className="font-medium text-foreground">
+                  {isLoggedIn
+                    ? (listing.whatsapp || listing.seller?.whatsapp || "-")
+                    : t("سجّل الدخول لعرض الرقم", "Sign in to view number")}
+                </p>
               </div>
               <div className="p-4 rounded-xl bg-muted/50 space-y-1">
                 <span className="text-xs text-muted-foreground">{t("الحالة", "Status")}</span>
@@ -667,8 +672,9 @@ export function BookDetails({ listing, relatedListings, viewer, sellerRating }: 
                       )}
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span>
-                          {listing.seller?.phone ||
-                            t("لا يوجد رقم هاتف", "No phone number")}
+                          {isLoggedIn
+                            ? (listing.seller?.phone || t("لا يوجد رقم هاتف", "No phone number"))
+                            : t("سجّل الدخول لعرض رقم البائع", "Sign in to view seller phone")}
                         </span>
                       </div>
                     </div>
@@ -694,6 +700,12 @@ export function BookDetails({ listing, relatedListings, viewer, sellerRating }: 
                       <MessageCircle className="h-5 w-5 shrink-0" aria-hidden />
                       {t("تواصل عبر واتساب", "Contact on WhatsApp")}
                     </a>
+                  </Button>
+                ) : availability === "available" && !isLoggedIn ? (
+                  <Button size="lg" className="h-12 min-h-[48px] flex-1" asChild>
+                    <Link href={`/login?redirect=/book/${listing.id}`}>
+                      {t("سجّل الدخول لعرض رقم البائع", "Sign in to contact seller")}
+                    </Link>
                   </Button>
                 ) : (
                   <Button

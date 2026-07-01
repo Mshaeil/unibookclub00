@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AdminDashboard } from "@/components/admin/admin-dashboard"
 import { DatabaseUnavailable } from "@/components/database-unavailable"
+import { canAccessAdminPanel } from "@/lib/utils/admin-access"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -22,7 +23,21 @@ export default async function AdminPage() {
     .eq("id", user.id)
     .single()
 
-  if (profile?.role !== "admin") {
+  let isSuperAdmin = false
+  try {
+    const { data } = await supabase.rpc("is_super_admin")
+    isSuperAdmin = Boolean(data)
+  } catch {
+    isSuperAdmin = false
+  }
+
+  if (
+    !canAccessAdminPanel({
+      role: profile?.role,
+      email: user.email,
+      isSuperAdmin,
+    })
+  ) {
     redirect("/dashboard")
   }
 
@@ -267,15 +282,6 @@ const users = usersRaw.map((u) => {
   }
 })
 
-let isSuperAdmin = false
-try {
-  const { data: isSuper, error: isSuperErr } = await supabase.rpc("is_super_admin")
-  if (!isSuperErr) {
-    isSuperAdmin = Boolean(isSuper)
-  }
-} catch {
-  // ignore (older DB without scripts/019)
-}
 let superAdmins: {
   id: string
   email: string

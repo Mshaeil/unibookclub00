@@ -6,11 +6,7 @@ import { getOAuthCallbackUrl } from "@/lib/auth/oauth-redirect"
 import { createClient } from "@/lib/supabase/client"
 import { isValidTenDigitPhone, sanitizePhoneDigits } from "@/lib/utils/phone"
 import { isPasswordStrongEnough, PASSWORD_MIN_LENGTH } from "@/lib/utils/generate-password"
-import {
-  isUniversityEmail,
-  universityEmailErrorMessage,
-  universityEmailHint,
-} from "@/lib/utils/university-email"
+import { isValidEmailFormat } from "@/lib/utils/email"
 import { PasswordField } from "@/components/auth/password-field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -161,8 +157,8 @@ export default function RegisterPage() {
       return
     }
 
-    if (!isUniversityEmail(formData.email)) {
-      setError(universityEmailErrorMessage(language))
+    if (!isValidEmailFormat(formData.email)) {
+      setError(t("البريد الإلكتروني غير صالح", "Invalid email address"))
       setLoading(false)
       return
     }
@@ -292,7 +288,7 @@ export default function RegisterPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder={universityEmailHint()}
+                    placeholder="you@gmail.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="pr-10"

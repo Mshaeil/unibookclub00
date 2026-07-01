@@ -4,6 +4,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { LanguageProvider } from "@/components/language-provider"
 import { DeferredVitals } from "@/components/deferred-vitals"
 import { NavigationProgress } from "@/components/navigation-progress"
+import { ListingNotifications } from "@/components/realtime/listing-notifications"
+import { ListingsLiveSync } from "@/components/realtime/listings-live-sync"
 import { getSiteUrl } from "@/lib/utils/site-url"
 import './globals.css'
 
@@ -74,7 +76,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <NavigationProgress />
-          <LanguageProvider>{children}</LanguageProvider>
+          <LanguageProvider>
+            <ListingsLiveSync />
+            {children}
+            <ListingNotifications />
+          </LanguageProvider>
         </ThemeProvider>
         <DeferredVitals />
       </body>

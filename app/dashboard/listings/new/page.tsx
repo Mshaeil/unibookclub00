@@ -3,12 +3,24 @@ import { createClient } from "@/lib/supabase/server"
 import { NewListingForm } from "@/components/dashboard/new-listing-form"
 import { mapCatalogForForm } from "@/lib/utils/catalog-label"
 
+export const dynamic = "force-dynamic"
+
 export default async function NewListingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/login?redirect=/dashboard/listings/new")
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("seller_status")
+    .eq("id", user.id)
+    .maybeSingle()
+
+  if (profile?.seller_status !== "verified") {
+    redirect("/dashboard/become-seller")
   }
 
   const [{ data: facultiesRaw }, { data: majorsRaw }, { data: coursesRaw }] = await Promise.all([

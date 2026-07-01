@@ -27,15 +27,22 @@ import {
   Settings,
   Shield,
   MoreVertical,
-  ShoppingBag,
   ShoppingCart,
 } from "lucide-react"
 import type { AuthChangeEvent, Session, User as SupabaseUser } from "@supabase/supabase-js"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
+import { canAccessAdminPanel, queryIsSuperAdmin } from "@/lib/utils/admin-access"
 
 type Profile = {
   full_name: string | null
   role: "user" | "admin"
+  seller_status?: string | null
+}
+
+function sellerListHref(loggedIn: boolean, sellerStatus?: string | null): string {
+  if (!loggedIn) return "/login?redirect=/dashboard/become-seller"
+  if (sellerStatus === "verified") return "/dashboard/listings/new"
+  return "/dashboard/become-seller"
 }
 
 export function Header() {
@@ -48,6 +55,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [isAdminUser, setIsAdminUser] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -66,12 +74,24 @@ export function Header() {
 
         if (user) {
           void ensureUserProfile(supabase, user)
-          const { data } = await supabase
-            .from("profiles")
-            .select("full_name, role")
-            .eq("id", user.id)
-            .maybeSingle()
-          if (mounted) setProfile(data ?? null)
+          const [{ data }, isSuperAdmin] = await Promise.all([
+            supabase
+              .from("profiles")
+              .select("full_name, role, seller_status")
+              .eq("id", user.id)
+              .maybeSingle(),
+            queryIsSuperAdmin(supabase),
+          ])
+          if (mounted) {
+            setProfile(data ?? null)
+            setIsAdminUser(
+              canAccessAdminPanel({
+                role: data?.role,
+                email: user.email,
+                isSuperAdmin,
+              }),
+            )
+          }
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
@@ -98,25 +118,46 @@ export function Header() {
         setUser(session?.user ?? null)
         if (!session?.user) {
           setProfile(null)
+          setIsAdminUser(false)
           return
         }
-        // Avoid blocking on ensureUserProfile; fetch first, then sync if missing.
-        const { data } = await supabase
-          .from("profiles")
-          .select("full_name, role")
-          .eq("id", session.user.id)
-          .maybeSingle()
-        if (mounted) setProfile(data ?? null)
+        const [{ data }, isSuperAdmin] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("full_name, role, seller_status")
+            .eq("id", session.user.id)
+            .maybeSingle(),
+          queryIsSuperAdmin(supabase),
+        ])
+        if (mounted) {
+          setProfile(data ?? null)
+          setIsAdminUser(
+            canAccessAdminPanel({
+              role: data?.role,
+              email: session.user.email,
+              isSuperAdmin,
+            }),
+          )
+        }
 
         if (!data) {
           try {
             await ensureUserProfile(supabase, session.user)
             const { data: dataAfterSync } = await supabase
               .from("profiles")
-              .select("full_name, role")
+              .select("full_name, role, seller_status")
               .eq("id", session.user.id)
               .maybeSingle()
-            if (mounted) setProfile(dataAfterSync ?? null)
+            if (mounted) {
+              setProfile(dataAfterSync ?? null)
+              setIsAdminUser(
+                canAccessAdminPanel({
+                  role: dataAfterSync?.role,
+                  email: session.user.email,
+                  isSuperAdmin,
+                }),
+              )
+            }
           } catch {
             // If sync fails, the UI will continue showing null profile until the next auth refresh.
           }
@@ -231,7 +272,7 @@ export function Header() {
                   </Link>
                 </Button>
                 <Button asChild size="sm" className="gap-2">
-                  <Link href="/dashboard/listings/new">
+                  <Link href={sellerListHref(true, profile?.seller_status)}>
                     <Plus className="h-4 w-4" />
                     {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                   </Link>
@@ -268,21 +309,9 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/orders" className="cursor-pointer">
-                        <ShoppingBag className="ml-2 h-4 w-4" />
-                        {t("طلباتي", "My orders")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
                       <Link href="/cart" className="cursor-pointer">
                         <ShoppingCart className="ml-2 h-4 w-4" />
                         {t("السلة", "Cart")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/purchases" className="cursor-pointer">
-                        <ShoppingBag className="ml-2 h-4 w-4" />
-                        {t("مشترياتك", "Your purchases")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -297,7 +326,7 @@ export function Header() {
                         {t("إعدادات الحساب", "Account settings")}
                       </Link>
                     </DropdownMenuItem>
-                    {profile?.role === "admin" && (
+                    {isAdminUser && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
@@ -346,7 +375,7 @@ export function Header() {
                   </Link>
                 </Button>
                 <Button asChild size="sm" className="gap-2">
-                  <Link href="/register">
+                  <Link href={sellerListHref(false)}>
                     <Plus className="h-4 w-4" />
                     {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                   </Link>
@@ -400,7 +429,7 @@ export function Header() {
               {user ? (
                 <>
                   <Button asChild size="sm" className="w-full gap-2">
-                    <Link href="/dashboard/listings/new" onClick={closeMobileMenu}>
+                    <Link href={sellerListHref(true, profile?.seller_status)} onClick={closeMobileMenu}>
                       <Plus className="h-4 w-4" />
                       {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                     </Link>
@@ -412,21 +441,9 @@ export function Header() {
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/dashboard/orders" onClick={closeMobileMenu}>
-                      <ShoppingBag className="h-4 w-4" />
-                      {t("طلباتي", "My orders")}
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
                     <Link href="/cart" onClick={closeMobileMenu}>
                       <ShoppingCart className="h-4 w-4" />
                       {t("السلة", "Cart")}
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                    <Link href="/dashboard/purchases" onClick={closeMobileMenu}>
-                      <ShoppingBag className="h-4 w-4" />
-                      {t("مشترياتك", "Your purchases")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="w-full gap-2">
@@ -441,7 +458,7 @@ export function Header() {
                       {t("إعدادات الحساب", "Account settings")}
                     </Link>
                   </Button>
-                  {profile?.role === "admin" && (
+                  {isAdminUser && (
                     <Button asChild variant="outline" size="sm" className="w-full gap-2">
                       <Link href="/admin" onClick={closeMobileMenu}>
                         <Shield className="h-4 w-4" />
@@ -469,7 +486,7 @@ export function Header() {
                     </Link>
                   </Button>
                   <Button asChild size="sm" className="w-full gap-2">
-                    <Link href="/register" onClick={closeMobileMenu}>
+                    <Link href={sellerListHref(false)} onClick={closeMobileMenu}>
                       <Plus className="h-4 w-4" />
                       {t("اعرض كتاباً أو ملخصاً", "List book or summary")}
                     </Link>

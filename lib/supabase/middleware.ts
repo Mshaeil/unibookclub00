@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { canAccessAdminPanel, queryIsSuperAdmin } from '@/lib/utils/admin-access'
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
@@ -85,13 +86,19 @@ export async function updateSession(request: NextRequest) {
 
   // Check admin role for admin routes
   if (isAdminRoute && user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    if (profile?.role !== 'admin') {
+    const [profileRes, isSuperAdmin] = await Promise.all([
+      supabase.from('profiles').select('role').eq('id', user.id).single(),
+      queryIsSuperAdmin(supabase),
+    ])
+    const profile = profileRes.data
+
+    if (
+      !canAccessAdminPanel({
+        role: profile?.role,
+        email: user.email,
+        isSuperAdmin,
+      })
+    ) {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
