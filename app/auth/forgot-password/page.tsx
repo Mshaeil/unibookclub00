@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { BookOpen, Loader2, Mail, AlertCircle, ArrowRight, CheckCircle } from "lucide-react"
 import { useTranslate } from "@/components/language-provider"
 import { TurnstileWidget } from "@/components/auth/turnstile-widget"
+import { universityEmailHint } from "@/lib/utils/university-email"
 
 export default function ForgotPasswordPage() {
   const t = useTranslate()
@@ -129,7 +130,7 @@ export default function ForgotPasswordPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="example@university.edu.jo"
+                    placeholder={universityEmailHint()}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pr-10"

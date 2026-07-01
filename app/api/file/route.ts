@@ -2,16 +2,15 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createPublicSupabaseClient } from "@/lib/supabase/public-server"
 
 const BUCKET_NAME = "listing-images"
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|avif|bmp|svg)$/i
 
 function normalizeStorageRef(input: string): { bucket: string; key: string } {
   let raw = (input || "").trim()
   if (!raw) return { bucket: BUCKET_NAME, key: "" }
 
-  // If DB stored a full Supabase storage URL, extract bucket/key.
   if (/^https?:\/\//i.test(raw)) {
     try {
       const u = new URL(raw)
-      // /storage/v1/object/public/<bucket>/<key...>
       const m = u.pathname.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/)
       if (m) return { bucket: m[1], key: decodeURIComponent(m[2]) }
       raw = u.pathname.replace(/^\/+/, "")
@@ -24,7 +23,6 @@ function normalizeStorageRef(input: string): { bucket: string; key: string } {
   raw = raw.replace(/^public\//, "")
   raw = raw.replace(/^storage\/v1\/object\/(?:public|sign)\//, "")
 
-  // If the string starts with "<bucket>/...", split it.
   if (raw.startsWith(`${BUCKET_NAME}/`)) {
     return { bucket: BUCKET_NAME, key: raw.slice(`${BUCKET_NAME}/`.length) }
   }
@@ -32,13 +30,21 @@ function normalizeStorageRef(input: string): { bucket: string; key: string } {
   if (firstSlash > 0) {
     const maybeBucket = raw.slice(0, firstSlash)
     const rest = raw.slice(firstSlash + 1)
-    // Accept other bucket names if present in stored value.
     if (maybeBucket && rest.startsWith("listings/")) {
       return { bucket: maybeBucket, key: rest }
     }
   }
 
   return { bucket: BUCKET_NAME, key: raw }
+}
+
+function isPublicListingImageKey(key: string): boolean {
+  if (!key.startsWith("listings/")) return false
+  if (key.includes("..")) return false
+  if (/\[PDF_FILE\]/i.test(key)) return false
+  const lower = key.toLowerCase()
+  if (/\.(pdf|docx?|pptx?|zip|txt)$/.test(lower)) return false
+  return IMAGE_EXT.test(key)
 }
 
 function placeholderSvg(text = "No image") {
@@ -58,18 +64,17 @@ export async function GET(request: NextRequest) {
     }
 
     const { bucket, key } = normalizeStorageRef(pathname)
-    if (!key) {
+    if (!key || bucket !== BUCKET_NAME) {
       return NextResponse.json({ error: "Invalid pathname" }, { status: 400 })
     }
+    if (!isPublicListingImageKey(key)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
-    // Use public client to avoid auth/session work for every image request.
     const supabase = createPublicSupabaseClient()
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .download(key)
+    const { data, error } = await supabase.storage.from(bucket).download(key)
 
     if (error || !data) {
-      // Return a tiny placeholder image (avoid flooding network with repeated 404s).
       return new NextResponse(placeholderSvg("Image not found"), {
         status: 200,
         headers: {
@@ -90,8 +95,7 @@ export async function GET(request: NextRequest) {
         "X-Content-Type-Options": "nosniff",
       },
     })
-  } catch (error) {
-    console.error("Error serving file:", error)
+  } catch {
     return NextResponse.json({ error: "Failed to serve file" }, { status: 500 })
   }
 }

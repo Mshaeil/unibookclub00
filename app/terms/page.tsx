@@ -18,7 +18,7 @@ export default function TermsPage() {
               سياسة الاستخدام
             </h1>
             <p className="text-muted-foreground">
-              آخر تحديث: يناير 2024
+              آخر تحديث: يوليو 2026
             </p>
           </div>
 

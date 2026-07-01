@@ -74,10 +74,13 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-sidebar-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-sidebar-foreground/60">
-          <p>© 2024 UniBookClub. {language === "ar" ? "جميع الحقوق محفوظة." : "All rights reserved."}</p>
+          <p>© 2026 UniBookClub. {language === "ar" ? "جميع الحقوق محفوظة." : "All rights reserved."}</p>
           <div className="flex gap-6">
             <Link href="/terms" className="hover:text-sidebar-foreground transition-colors">
               {language === "ar" ? "سياسة الاستخدام" : "Terms"}
+            </Link>
+            <Link href="/privacy" className="hover:text-sidebar-foreground transition-colors">
+              {language === "ar" ? "سياسة الخصوصية" : "Privacy"}
             </Link>
             <Link href="/faq" className="hover:text-sidebar-foreground transition-colors">
               {language === "ar" ? "الأسئلة الشائعة" : "FAQ"}

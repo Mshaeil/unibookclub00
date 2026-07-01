@@ -19,6 +19,9 @@ export async function updateSession(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route))
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route))
+  const isResetPasswordRoute =
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/auth/reset-password')
   const needsAuthCheck = isProtectedRoute || isAdminRoute || isAuthRoute
 
   // Fast path for public pages: avoid network roundtrip to Supabase in middleware.
@@ -73,8 +76,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from auth pages
-  if (isAuthRoute && user) {
+  // Redirect authenticated users away from auth pages (except password reset recovery flow)
+  if (isAuthRoute && user && !isResetPasswordRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

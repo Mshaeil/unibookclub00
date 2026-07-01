@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { LanguageProvider } from "@/components/language-provider"
 import { DeferredVitals } from "@/components/deferred-vitals"
 import { NavigationProgress } from "@/components/navigation-progress"
+import { getSiteUrl } from "@/lib/utils/site-url"
 import './globals.css'
 
 const tajawal = Tajawal({ 
@@ -23,6 +24,7 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: 'UniBookClub — سوق الكتب والملخصات | جامعة العلوم التطبيقية',
     template: '%s | UniBookClub',
@@ -43,11 +45,17 @@ export const metadata: Metadata = {
     title: 'UniBookClub — سوق الكتب والملخصات',
     description:
       'بيع وشراء الكتب والملخصات الجامعية — تجربة حديثة وسريعة لطلاب جامعة العلوم التطبيقية.',
+    url: getSiteUrl(),
+    images: [{ url: '/apple-icon', width: 180, height: 180, alt: 'UniBookClub' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'UniBookClub',
     description: 'سوق الكتب والملخصات لطلاب جامعة العلوم التطبيقية',
+    images: ['/apple-icon'],
+  },
+  alternates: {
+    canonical: getSiteUrl(),
   },
 }
 

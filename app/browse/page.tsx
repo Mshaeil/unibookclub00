@@ -35,9 +35,7 @@ export default async function BrowsePage({
       `
       *,
       seller:profiles!listings_seller_id_fkey(
-        full_name,
-        phone,
-        whatsapp
+        full_name
       ),
       course:courses(
         id,

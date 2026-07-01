@@ -51,26 +51,31 @@ const [
       course:courses(id, name_ar, name_en, name)
     `,
     )
-    .order("created_at", { ascending: false }),
+    .order("created_at", { ascending: false })
+    .limit(150),
   supabase.rpc("admin_list_registered_users"),
   supabase
     .from("reports")
     .select("id, reason, details, status, created_at, listing_id, reporter_id")
-    .order("created_at", { ascending: false }),
+    .order("created_at", { ascending: false })
+    .limit(100),
   supabase
     .from("reports")
     .select("id, reason, details, status, created_at, listing_id, user_id")
-    .order("created_at", { ascending: false }),
+    .order("created_at", { ascending: false })
+    .limit(100),
   supabase
     .from("sales")
     .select(
       "id, listing_id, seller_id, buyer_id, buyer_name, buyer_phone, buyer_email, reference_code, created_at",
     )
-    .order("created_at", { ascending: false }),
+    .order("created_at", { ascending: false })
+    .limit(100),
   supabase
     .from("seller_reviews")
     .select("id, seller_id, reviewer_id, listing_id, rating, comment, created_at")
-    .order("created_at", { ascending: false }),
+    .order("created_at", { ascending: false })
+    .limit(100),
   supabase.from("faculties").select("id, name_ar, name").order("id"),
   supabase.from("majors").select("id, faculty_id, name_ar, name").order("id"),
   supabase.from("courses").select("id, major_id, name_ar, name").order("id"),
@@ -236,6 +241,7 @@ if (!adminUsersRpc.error && Array.isArray(adminUsersRpc.data)) {
     .from("profiles")
     .select("id, full_name, phone, whatsapp, role, created_at, is_active, email")
     .order("created_at", { ascending: false })
+    .limit(200)
   usersRaw = (fb.data || []) as UserRow[]
 }
 
