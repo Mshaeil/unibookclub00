@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { ensureUserProfile } from "@/lib/auth/ensure-user-profile"
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/keys"
 
 /**
  * OAuth (Google) redirect target. Add this URL in Supabase:
@@ -20,8 +21,8 @@ export async function GET(request: Request) {
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      getSupabaseUrl(),
+      getSupabaseAnonKey(),
       {
         cookies: {
           getAll() {

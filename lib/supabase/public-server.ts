@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/keys"
 
 /**
  * Server-only Supabase client without reading cookies / session.
@@ -6,7 +7,7 @@ import { createClient } from "@supabase/supabase-js"
  * RLS still applies using the anonymous role.
  */
 export function createPublicSupabaseClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  return createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
